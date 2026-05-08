@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
@@ -85,6 +85,17 @@ const CSS = `
   #qs-printable { display:none; }
 `;
 
+/* ── Field wrapper ── */
+function Inp({ label, children }) {
+  return (
+    <div style={{marginBottom:12}}>
+      <label className="field-label">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+/* ── Quote Preview ── */
 function QuotePreview({ form }) {
   const sym = CURRENCIES[form.currency] || "NT$";
   const fmt = (n) => `${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
@@ -181,6 +192,116 @@ function QuotePreview({ form }) {
   );
 }
 
+/* ── Basic Section ── */
+function BasicSection({ form, set }) {
+  return (
+    <>
+      <div className="section-title">報價單資訊</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Inp label="報價單號"><input className="inp" value={form.quoteNumber} onChange={e=>set("quoteNumber",e.target.value)}/></Inp>
+        <Inp label="報價日期"><input type="date" className="inp" value={form.quoteDate} onChange={e=>set("quoteDate",e.target.value)}/></Inp>
+        <Inp label="有效天數"><input type="number" className="inp" value={form.validDays} onChange={e=>set("validDays",e.target.value)}/></Inp>
+        <Inp label="幣別">
+          <select className="inp" value={form.currency} onChange={e=>set("currency",e.target.value)}>
+            {Object.entries(CURRENCIES).map(([k,v])=><option key={k} value={k}>{k} {v}</option>)}
+          </select>
+        </Inp>
+      </div>
+      <div className="section-title" style={{marginTop:4}}>我方公司資訊</div>
+      <Inp label="公司名稱"><input className="inp" placeholder="您的公司名稱" value={form.companyName} onChange={e=>set("companyName",e.target.value)}/></Inp>
+      <Inp label="地址"><input className="inp" placeholder="公司地址" value={form.companyAddress} onChange={e=>set("companyAddress",e.target.value)}/></Inp>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Inp label="電話"><input className="inp" placeholder="電話" value={form.companyPhone} onChange={e=>set("companyPhone",e.target.value)}/></Inp>
+        <Inp label="Email"><input className="inp" placeholder="Email" value={form.companyEmail} onChange={e=>set("companyEmail",e.target.value)}/></Inp>
+      </div>
+    </>
+  );
+}
+
+/* ── Client Section ── */
+function ClientSection({ form, set, clients, selClient, selectClient, saveClient, deleteClient }) {
+  return (
+    <>
+      <div className="section-title">客戶資料</div>
+      <Inp label="聯絡人姓名"><input className="inp" placeholder="聯絡人" value={form.clientName} onChange={e=>set("clientName",e.target.value)}/></Inp>
+      <Inp label="客戶公司"><input className="inp" placeholder="公司名稱" value={form.clientCompany} onChange={e=>set("clientCompany",e.target.value)}/></Inp>
+      <Inp label="地址"><input className="inp" placeholder="地址" value={form.clientAddress} onChange={e=>set("clientAddress",e.target.value)}/></Inp>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Inp label="電話"><input className="inp" placeholder="電話" value={form.clientPhone} onChange={e=>set("clientPhone",e.target.value)}/></Inp>
+        <Inp label="Email"><input className="inp" placeholder="Email" value={form.clientEmail} onChange={e=>set("clientEmail",e.target.value)}/></Inp>
+      </div>
+      <button onClick={saveClient} className="btn btn-success" style={{width:"100%",padding:"11px",fontSize:13,marginTop:4}}>☁️ 儲存至雲端</button>
+      {clients.length>0&&<>
+        <div style={{fontSize:11,color:"var(--muted)",marginTop:18,marginBottom:10,fontWeight:700}}>已儲存客戶（{clients.length} 位）— 雲端同步</div>
+        {clients.map(c=>(
+          <div key={c.id} className="card" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,padding:"10px 12px"}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>{c.company||c.name}</div>
+              {c.company&&c.name&&<div style={{fontSize:11,color:"var(--muted)"}}>{c.name}</div>}
+              {c.phone&&<div style={{fontSize:10,color:"var(--sub)"}}>{c.phone}</div>}
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={()=>selectClient(c.id)} className="btn btn-ghost" style={{padding:"5px 10px",fontSize:11}}>選用</button>
+              <button onClick={()=>deleteClient(c.id)} className="btn btn-danger" style={{padding:"5px 8px",fontSize:11}}>×</button>
+            </div>
+          </div>
+        ))}
+      </>}
+    </>
+  );
+}
+
+/* ── Items Section ── */
+function ItemsSection({ form, setItem, addItem, removeItem, fmt, tax, subtotal, total }) {
+  return (
+    <>
+      <div className="section-title">報價項目</div>
+      {form.items.map((item,idx)=>(
+        <div key={item.id} className="card" style={{marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <span style={{fontSize:12,fontWeight:700,color:"var(--accent)"}}>項目 {idx+1}</span>
+            {form.items.length>1&&<button onClick={()=>removeItem(idx)} className="btn btn-danger" style={{padding:"3px 10px",fontSize:11}}>刪除</button>}
+          </div>
+          <Inp label="品項說明"><input className="inp" placeholder="產品 / 服務說明" value={item.description} onChange={e=>setItem(idx,"description",e.target.value)}/></Inp>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <Inp label="數量"><input type="number" className="inp" min="0" value={item.qty} onChange={e=>setItem(idx,"qty",e.target.value)}/></Inp>
+            <Inp label="單位">
+              <select className="inp" value={item.unit} onChange={e=>setItem(idx,"unit",e.target.value)}>
+                {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+              </select>
+            </Inp>
+            <Inp label="單價"><input type="number" className="inp" min="0" value={item.unitPrice} onChange={e=>setItem(idx,"unitPrice",e.target.value)}/></Inp>
+          </div>
+          <div style={{textAlign:"right",fontSize:12,color:"var(--sub)",marginBottom:8}}>小計：<span style={{color:"var(--accent)",fontWeight:700}}>{fmt((+item.qty||0)*(+item.unitPrice||0))}</span></div>
+          <Inp label="備註（選填）"><input className="inp" placeholder="此項備註" value={item.note} onChange={e=>setItem(idx,"note",e.target.value)}/></Inp>
+        </div>
+      ))}
+      <button onClick={addItem} className="btn btn-ghost" style={{width:"100%",padding:"11px",fontSize:13,borderStyle:"dashed"}}>＋ 新增項目</button>
+      <div className="card" style={{marginTop:14,background:"#0d1a2d"}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--sub)",marginBottom:6}}><span>小計</span><span>{fmt(subtotal)}</span></div>
+        {(+form.taxRate)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--sub)",marginBottom:6}}><span>稅金（{form.taxRate}%）</span><span>{fmt(tax)}</span></div>}
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:15,fontWeight:800,color:"var(--accent)"}}><span>總計</span><span>{fmt(total)}</span></div>
+      </div>
+    </>
+  );
+}
+
+/* ── Other Section ── */
+function OtherSection({ form, set }) {
+  return (
+    <>
+      <div className="section-title">其他設定</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Inp label="稅率 (%)"><input type="number" className="inp" min="0" max="100" value={form.taxRate} onChange={e=>set("taxRate",e.target.value)}/></Inp>
+        <Inp label="付款條件"><input className="inp" placeholder="例：30天內" value={form.paymentTerms} onChange={e=>set("paymentTerms",e.target.value)}/></Inp>
+      </div>
+      <Inp label="銀行匯款資訊"><textarea className="inp" rows={3} placeholder="銀行名稱、帳號、戶名..." value={form.bankInfo} onChange={e=>set("bankInfo",e.target.value)}/></Inp>
+      <Inp label="備註說明"><textarea className="inp" rows={4} placeholder="其他說明、注意事項..." value={form.notes} onChange={e=>set("notes",e.target.value)}/></Inp>
+    </>
+  );
+}
+
+/* ── Main App ── */
 export default function App() {
   const isMobile = useIsMobile();
   const [form, setForm] = useState({...BLANK, quoteNumber: genQNum()});
@@ -204,53 +325,65 @@ export default function App() {
         setDbReady(true);
         setSyncStatus("synced");
       },
-      () => { setSyncStatus("error"); }
+      () => setSyncStatus("error")
     );
     return () => unsub();
   }, []);
 
-  const showToast = (msg, err=false) => {
+  const showToast = useCallback((msg, err=false) => {
     setToast(msg); setToastErr(err); setToastKey(k=>k+1);
     setTimeout(()=>setToast(""), 2500);
-  };
+  }, []);
 
   const sym = CURRENCIES[form.currency] || "NT$";
-  const fmt = (n) => `${sym} ${Number(n).toLocaleString("zh-TW")}`;
+  const fmt = useCallback((n) => `${sym} ${Number(n).toLocaleString("zh-TW")}`, [sym]);
   const subtotal = form.items.reduce((s,i) => s + (+i.qty||0)*(+i.unitPrice||0), 0);
   const tax = subtotal*(+form.taxRate||0)/100;
   const total = subtotal+tax;
 
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const setItem = (idx,k,v) => setForm(f=>({...f,items:f.items.map((it,i)=>i===idx?{...it,[k]:v}:it)}));
-  const addItem = () => setForm(f=>({...f,items:[...f.items,{id:Date.now(),description:"",qty:1,unit:"式",unitPrice:0,note:""}]}));
-  const removeItem = (idx) => setForm(f=>({...f,items:f.items.filter((_,i)=>i!==idx)}));
+  const set = useCallback((k,v) => setForm(f=>({...f,[k]:v})), []);
+  const setItem = useCallback((idx,k,v) => setForm(f=>({...f,items:f.items.map((it,i)=>i===idx?{...it,[k]:v}:it)})), []);
+  const addItem = useCallback(() => setForm(f=>({...f,items:[...f.items,{id:Date.now(),description:"",qty:1,unit:"式",unitPrice:0,note:""}]})), []);
+  const removeItem = useCallback((idx) => setForm(f=>({...f,items:f.items.filter((_,i)=>i!==idx)})), []);
 
-  const selectClient = (id) => {
+  const selectClient = useCallback((id) => {
     setSelClient(id);
     if(!id) return;
-    const c = clients.find(c=>c.id===id);
-    if(c) setForm(f=>({...f,clientName:c.name||"",clientCompany:c.company||"",clientAddress:c.address||"",clientPhone:c.phone||"",clientEmail:c.email||""}));
-  };
+    setClients(prev => {
+      const c = prev.find(c=>c.id===id);
+      if(c) setForm(f=>({...f,clientName:c.name||"",clientCompany:c.company||"",clientAddress:c.address||"",clientPhone:c.phone||"",clientEmail:c.email||""}));
+      return prev;
+    });
+  }, []);
 
-  const saveClient = async () => {
-    if(!form.clientName&&!form.clientCompany) { showToast("⚠️ 請先填入客戶姓名或公司",true); return; }
-    setSyncStatus("syncing");
-    try {
-      const existing = clients.find(c=>c.company===form.clientCompany&&c.name===form.clientName);
-      const data = { name:form.clientName, company:form.clientCompany, address:form.clientAddress, phone:form.clientPhone, email:form.clientEmail, updatedAt: Date.now() };
-      if(existing) {
-        await updateDoc(doc(db,"clients",existing.id), data);
-        showToast("✅ 客戶資料已更新");
-      } else {
-        const ref = await addDoc(collection(db,"clients"), {...data, createdAt: Date.now()});
-        setSelClient(ref.id);
-        showToast("✅ 已儲存新客戶（雲端同步）");
-      }
-      setSyncStatus("synced");
-    } catch { setSyncStatus("error"); showToast("❌ 儲存失敗，請重試",true); }
-  };
+  const saveClient = useCallback(async () => {
+    setForm(async (f) => {
+      if(!f.clientName&&!f.clientCompany) { showToast("⚠️ 請先填入客戶姓名或公司",true); return f; }
+      return f;
+    });
+    setForm(f => {
+      (async () => {
+        if(!f.clientName&&!f.clientCompany) { showToast("⚠️ 請先填入客戶姓名或公司",true); return; }
+        setSyncStatus("syncing");
+        try {
+          const data = { name:f.clientName, company:f.clientCompany, address:f.clientAddress, phone:f.clientPhone, email:f.clientEmail, updatedAt: Date.now() };
+          const existing = clients.find(c=>c.company===f.clientCompany&&c.name===f.clientName);
+          if(existing) {
+            await updateDoc(doc(db,"clients",existing.id), data);
+            showToast("✅ 客戶資料已更新");
+          } else {
+            const ref = await addDoc(collection(db,"clients"), {...data, createdAt: Date.now()});
+            setSelClient(ref.id);
+            showToast("✅ 已儲存新客戶（雲端同步）");
+          }
+          setSyncStatus("synced");
+        } catch { setSyncStatus("error"); showToast("❌ 儲存失敗，請重試",true); }
+      })();
+      return f;
+    });
+  }, [clients, showToast]);
 
-  const deleteClient = async (id) => {
+  const deleteClient = useCallback(async (id) => {
     if(!window.confirm("確定要刪除此客戶嗎？")) return;
     setSyncStatus("syncing");
     try {
@@ -259,26 +392,19 @@ export default function App() {
       showToast("🗑 已刪除客戶");
       setSyncStatus("synced");
     } catch { setSyncStatus("error"); showToast("❌ 刪除失敗",true); }
-  };
+  }, [selClient, showToast]);
 
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     const el = document.getElementById("qs-printable");
     if(el){ el.style.display="block"; setTimeout(()=>{ window.print(); setTimeout(()=>{ el.style.display="none"; },800); },150); }
-  };
+  }, []);
 
-  const newQuote = () => {
+  const newQuote = useCallback(() => {
     if(!window.confirm("確定要建立新報價單？目前資料將會清空。")) return;
     setForm({...BLANK, quoteNumber:genQNum()});
     setSelClient("");
     showToast("📄 新報價單已建立");
-  };
-
-  const Inp = ({label, children}) => (
-    <div style={{marginBottom:12}}>
-      <label className="field-label">{label}</label>
-      {children}
-    </div>
-  );
+  }, [showToast]);
 
   const sectionTabs = [
     {k:"basic",icon:"📋",label:"基本"},
@@ -287,7 +413,7 @@ export default function App() {
     {k:"other",icon:"⚙️",label:"其他"},
   ];
 
-  const FormPanel = () => (
+  const formContent = (
     <div style={{padding:isMobile?"14px 14px 100px":"20px",overflowY:"auto",height:"100%"}}>
       <div style={{display:"flex",alignItems:"center",marginBottom:12,fontSize:11,color:"var(--muted)"}}>
         <span className={`sync-dot${syncStatus==="syncing"?" syncing":syncStatus==="error"?" err":""}`}/>
@@ -313,83 +439,10 @@ export default function App() {
           </button>
         ))}
       </div>
-      {formSection==="basic"&&<>
-        <div className="section-title">報價單資訊</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="報價單號"><input className="inp" value={form.quoteNumber} onChange={e=>set("quoteNumber",e.target.value)}/></Inp>
-          <Inp label="報價日期"><input type="date" className="inp" value={form.quoteDate} onChange={e=>set("quoteDate",e.target.value)}/></Inp>
-          <Inp label="有效天數"><input type="number" className="inp" value={form.validDays} onChange={e=>set("validDays",e.target.value)}/></Inp>
-          <Inp label="幣別"><select className="inp" value={form.currency} onChange={e=>set("currency",e.target.value)}>{Object.entries(CURRENCIES).map(([k,v])=><option key={k} value={k}>{k} {v}</option>)}</select></Inp>
-        </div>
-        <div className="section-title" style={{marginTop:4}}>我方公司資訊</div>
-        <Inp label="公司名稱"><input className="inp" placeholder="您的公司名稱" value={form.companyName} onChange={e=>set("companyName",e.target.value)}/></Inp>
-        <Inp label="地址"><input className="inp" placeholder="公司地址" value={form.companyAddress} onChange={e=>set("companyAddress",e.target.value)}/></Inp>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="電話"><input className="inp" placeholder="電話" value={form.companyPhone} onChange={e=>set("companyPhone",e.target.value)}/></Inp>
-          <Inp label="Email"><input className="inp" placeholder="Email" value={form.companyEmail} onChange={e=>set("companyEmail",e.target.value)}/></Inp>
-        </div>
-      </>}
-      {formSection==="client"&&<>
-        <div className="section-title">客戶資料</div>
-        <Inp label="聯絡人姓名"><input className="inp" placeholder="聯絡人" value={form.clientName} onChange={e=>set("clientName",e.target.value)}/></Inp>
-        <Inp label="客戶公司"><input className="inp" placeholder="公司名稱" value={form.clientCompany} onChange={e=>set("clientCompany",e.target.value)}/></Inp>
-        <Inp label="地址"><input className="inp" placeholder="地址" value={form.clientAddress} onChange={e=>set("clientAddress",e.target.value)}/></Inp>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="電話"><input className="inp" placeholder="電話" value={form.clientPhone} onChange={e=>set("clientPhone",e.target.value)}/></Inp>
-          <Inp label="Email"><input className="inp" placeholder="Email" value={form.clientEmail} onChange={e=>set("clientEmail",e.target.value)}/></Inp>
-        </div>
-        <button onClick={saveClient} className="btn btn-success" style={{width:"100%",padding:"11px",fontSize:13,marginTop:4}}>☁️ 儲存至雲端</button>
-        {clients.length>0&&<>
-          <div style={{fontSize:11,color:"var(--muted)",marginTop:18,marginBottom:10,fontWeight:700}}>已儲存客戶（{clients.length} 位）— 雲端同步</div>
-          {clients.map(c=>(
-            <div key={c.id} className="card" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,padding:"10px 12px"}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:600}}>{c.company||c.name}</div>
-                {c.company&&c.name&&<div style={{fontSize:11,color:"var(--muted)"}}>{c.name}</div>}
-                {c.phone&&<div style={{fontSize:10,color:"var(--sub)"}}>{c.phone}</div>}
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <button onClick={()=>selectClient(c.id)} className="btn btn-ghost" style={{padding:"5px 10px",fontSize:11}}>選用</button>
-                <button onClick={()=>deleteClient(c.id)} className="btn btn-danger" style={{padding:"5px 8px",fontSize:11}}>×</button>
-              </div>
-            </div>
-          ))}
-        </>}
-      </>}
-      {formSection==="items"&&<>
-        <div className="section-title">報價項目</div>
-        {form.items.map((item,idx)=>(
-          <div key={item.id} className="card" style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <span style={{fontSize:12,fontWeight:700,color:"var(--accent)"}}>項目 {idx+1}</span>
-              {form.items.length>1&&<button onClick={()=>removeItem(idx)} className="btn btn-danger" style={{padding:"3px 10px",fontSize:11}}>刪除</button>}
-            </div>
-            <Inp label="品項說明"><input className="inp" placeholder="產品 / 服務說明" value={item.description} onChange={e=>setItem(idx,"description",e.target.value)}/></Inp>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-              <Inp label="數量"><input type="number" className="inp" min="0" value={item.qty} onChange={e=>setItem(idx,"qty",e.target.value)}/></Inp>
-              <Inp label="單位"><select className="inp" value={item.unit} onChange={e=>setItem(idx,"unit",e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select></Inp>
-              <Inp label="單價"><input type="number" className="inp" min="0" value={item.unitPrice} onChange={e=>setItem(idx,"unitPrice",e.target.value)}/></Inp>
-            </div>
-            <div style={{textAlign:"right",fontSize:12,color:"var(--sub)",marginBottom:8}}>小計：<span style={{color:"var(--accent)",fontWeight:700}}>{fmt((+item.qty||0)*(+item.unitPrice||0))}</span></div>
-            <Inp label="備註（選填）"><input className="inp" placeholder="此項備註" value={item.note} onChange={e=>setItem(idx,"note",e.target.value)}/></Inp>
-          </div>
-        ))}
-        <button onClick={addItem} className="btn btn-ghost" style={{width:"100%",padding:"11px",fontSize:13,borderStyle:"dashed"}}>＋ 新增項目</button>
-        <div className="card" style={{marginTop:14,background:"#0d1a2d"}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--sub)",marginBottom:6}}><span>小計</span><span>{fmt(subtotal)}</span></div>
-          {(+form.taxRate)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--sub)",marginBottom:6}}><span>稅金（{form.taxRate}%）</span><span>{fmt(tax)}</span></div>}
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:15,fontWeight:800,color:"var(--accent)"}}><span>總計</span><span>{fmt(total)}</span></div>
-        </div>
-      </>}
-      {formSection==="other"&&<>
-        <div className="section-title">其他設定</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Inp label="稅率 (%)"><input type="number" className="inp" min="0" max="100" value={form.taxRate} onChange={e=>set("taxRate",e.target.value)}/></Inp>
-          <Inp label="付款條件"><input className="inp" placeholder="例：30天內" value={form.paymentTerms} onChange={e=>set("paymentTerms",e.target.value)}/></Inp>
-        </div>
-        <Inp label="銀行匯款資訊"><textarea className="inp" rows={3} placeholder="銀行名稱、帳號、戶名..." value={form.bankInfo} onChange={e=>set("bankInfo",e.target.value)}/></Inp>
-        <Inp label="備註說明"><textarea className="inp" rows={4} placeholder="其他說明、注意事項..." value={form.notes} onChange={e=>set("notes",e.target.value)}/></Inp>
-      </>}
+      {formSection==="basic"&&<BasicSection form={form} set={set}/>}
+      {formSection==="client"&&<ClientSection form={form} set={set} clients={clients} selClient={selClient} selectClient={selectClient} saveClient={saveClient} deleteClient={deleteClient}/>}
+      {formSection==="items"&&<ItemsSection form={form} setItem={setItem} addItem={addItem} removeItem={removeItem} fmt={fmt} subtotal={subtotal} tax={tax} total={total}/>}
+      {formSection==="other"&&<OtherSection form={form} set={set}/>}
     </div>
   );
 
@@ -414,7 +467,7 @@ export default function App() {
         </div>
         {!isMobile&&(
           <div style={{display:"flex",height:"calc(100vh - 65px)"}}>
-            <div style={{width:"46%",minWidth:340,borderRight:"1px solid var(--border)",overflow:"hidden",display:"flex",flexDirection:"column"}}><FormPanel/></div>
+            <div style={{width:"46%",minWidth:340,borderRight:"1px solid var(--border)",overflow:"hidden",display:"flex",flexDirection:"column"}}>{formContent}</div>
             <div style={{flex:1,overflowY:"auto",background:"#0d1117",padding:20}}>
               <div style={{fontSize:11,color:"var(--muted)",marginBottom:12,textAlign:"center",fontWeight:600,letterSpacing:1}}>📄 即時預覽</div>
               <div style={{background:"white",borderRadius:10,padding:"28px 32px",boxShadow:"0 8px 40px rgba(0,0,0,.5)"}}><QuotePreview form={form}/></div>
@@ -424,7 +477,7 @@ export default function App() {
         {isMobile&&(
           <>
             <div style={{height:"calc(100vh - 57px)",overflowY:"auto"}}>
-              {mobileTab==="form"&&<FormPanel/>}
+              {mobileTab==="form"&&formContent}
               {mobileTab==="preview"&&(
                 <div style={{padding:"14px 14px 100px",background:"#0d1117",minHeight:"100%"}}>
                   <div style={{fontSize:11,color:"var(--muted)",marginBottom:12,textAlign:"center",fontWeight:600,letterSpacing:1}}>📄 報價單預覽</div>
