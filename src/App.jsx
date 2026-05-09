@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
@@ -22,6 +22,59 @@ function genQNum() {
 
 const CURRENCIES = { TWD:"NT$", USD:"US$", CNY:"¥", EUR:"€", JPY:"¥", HKD:"HK$" };
 const UNITS = ["式","個","件","台","組","批","月","次","小時","天","項","套","瓶","箱","公斤"];
+
+/* ── IME-safe input: handles Chinese composition correctly ── */
+function ImeInput({ value, onChange, className, placeholder, type="text", min, max, style }) {
+  const composing = useRef(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current && document.activeElement !== ref.current) {
+      ref.current.value = value ?? "";
+    }
+  }, [value]);
+
+  return (
+    <input
+      ref={ref}
+      type={type}
+      min={min}
+      max={max}
+      className={className}
+      placeholder={placeholder}
+      style={style}
+      defaultValue={value}
+      onCompositionStart={() => { composing.current = true; }}
+      onCompositionEnd={(e) => { composing.current = false; onChange(e.target.value); }}
+      onChange={(e) => { if (!composing.current) onChange(e.target.value); }}
+    />
+  );
+}
+
+function ImeTextarea({ value, onChange, className, placeholder, rows, style }) {
+  const composing = useRef(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current && document.activeElement !== ref.current) {
+      ref.current.value = value ?? "";
+    }
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={rows}
+      className={className}
+      placeholder={placeholder}
+      style={style}
+      defaultValue={value}
+      onCompositionStart={() => { composing.current = true; }}
+      onCompositionEnd={(e) => { composing.current = false; onChange(e.target.value); }}
+      onChange={(e) => { if (!composing.current) onChange(e.target.value); }}
+    />
+  );
+}
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap');
@@ -162,7 +215,6 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(()=>{ const h=()=>setIsMobile(window.innerWidth<768); window.addEventListener("resize",h); return ()=>window.removeEventListener("resize",h); },[]);
 
-  // Use refs for all form fields to avoid re-render focus loss
   const [quoteNumber, setQuoteNumber] = useState(genQNum());
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split("T")[0]);
   const [validDays, setValidDays] = useState("30");
@@ -259,10 +311,9 @@ export default function App() {
   };
 
   const F = ({label,children}) => <div style={{marginBottom:12}}><label className="flabel">{label}</label>{children}</div>;
-
   const tabs = [{k:"basic",i:"📋",l:"基本"},{k:"client",i:"👤",l:"客戶"},{k:"items",i:"📦",l:"項目"},{k:"other",i:"⚙️",l:"其他"}];
 
-  const FormArea = () => (
+  const FormArea = (
     <div style={{padding:isMobile?"14px 14px 100px":"20px",overflowY:"auto",height:"100%"}}>
       <div style={{display:"flex",alignItems:"center",marginBottom:12,fontSize:11,color:"var(--muted)"}}>
         <span className={`sdot${sync==="syncing"?" spin":sync==="error"?" bad":""}`}/>
@@ -288,28 +339,28 @@ export default function App() {
       {section==="basic"&&<>
         <div className="stitle">報價單資訊</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <F label="報價單號"><input className="inp" value={quoteNumber} onChange={e=>setQuoteNumber(e.target.value)}/></F>
+          <F label="報價單號"><ImeInput className="inp" value={quoteNumber} onChange={setQuoteNumber}/></F>
           <F label="報價日期"><input type="date" className="inp" value={quoteDate} onChange={e=>setQuoteDate(e.target.value)}/></F>
           <F label="有效天數"><input type="number" className="inp" value={validDays} onChange={e=>setValidDays(e.target.value)}/></F>
           <F label="幣別"><select className="inp" value={currency} onChange={e=>setCurrency(e.target.value)}>{Object.entries(CURRENCIES).map(([k,v])=><option key={k} value={k}>{k} {v}</option>)}</select></F>
         </div>
         <div className="stitle" style={{marginTop:4}}>我方公司資訊</div>
-        <F label="公司名稱"><input className="inp" placeholder="您的公司名稱" value={companyName} onChange={e=>setCompanyName(e.target.value)}/></F>
-        <F label="地址"><input className="inp" placeholder="公司地址" value={companyAddress} onChange={e=>setCompanyAddress(e.target.value)}/></F>
+        <F label="公司名稱"><ImeInput className="inp" placeholder="您的公司名稱" value={companyName} onChange={setCompanyName}/></F>
+        <F label="地址"><ImeInput className="inp" placeholder="公司地址" value={companyAddress} onChange={setCompanyAddress}/></F>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <F label="電話"><input className="inp" placeholder="電話" value={companyPhone} onChange={e=>setCompanyPhone(e.target.value)}/></F>
-          <F label="Email"><input className="inp" placeholder="Email" value={companyEmail} onChange={e=>setCompanyEmail(e.target.value)}/></F>
+          <F label="電話"><ImeInput className="inp" placeholder="電話" value={companyPhone} onChange={setCompanyPhone}/></F>
+          <F label="Email"><ImeInput className="inp" placeholder="Email" value={companyEmail} onChange={setCompanyEmail}/></F>
         </div>
       </>}
 
       {section==="client"&&<>
         <div className="stitle">客戶資料</div>
-        <F label="聯絡人姓名"><input className="inp" placeholder="聯絡人" value={clientName} onChange={e=>setClientName(e.target.value)}/></F>
-        <F label="客戶公司"><input className="inp" placeholder="公司名稱" value={clientCompany} onChange={e=>setClientCompany(e.target.value)}/></F>
-        <F label="地址"><input className="inp" placeholder="地址" value={clientAddress} onChange={e=>setClientAddress(e.target.value)}/></F>
+        <F label="聯絡人姓名"><ImeInput className="inp" placeholder="聯絡人" value={clientName} onChange={setClientName}/></F>
+        <F label="客戶公司"><ImeInput className="inp" placeholder="公司名稱" value={clientCompany} onChange={setClientCompany}/></F>
+        <F label="地址"><ImeInput className="inp" placeholder="地址" value={clientAddress} onChange={setClientAddress}/></F>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <F label="電話"><input className="inp" placeholder="電話" value={clientPhone} onChange={e=>setClientPhone(e.target.value)}/></F>
-          <F label="Email"><input className="inp" placeholder="Email" value={clientEmail} onChange={e=>setClientEmail(e.target.value)}/></F>
+          <F label="電話"><ImeInput className="inp" placeholder="電話" value={clientPhone} onChange={setClientPhone}/></F>
+          <F label="Email"><ImeInput className="inp" placeholder="Email" value={clientEmail} onChange={setClientEmail}/></F>
         </div>
         <button onClick={saveClient} className="btn btn-success" style={{width:"100%",padding:"11px",fontSize:13,marginTop:4}}>☁️ 儲存至雲端</button>
         {clients.length>0&&<>
@@ -338,14 +389,14 @@ export default function App() {
               <span style={{fontSize:12,fontWeight:700,color:"var(--accent)"}}>項目 {idx+1}</span>
               {items.length>1&&<button onClick={()=>removeItem(idx)} className="btn btn-danger" style={{padding:"3px 10px",fontSize:11}}>刪除</button>}
             </div>
-            <F label="品項說明"><input className="inp" placeholder="產品 / 服務說明" value={item.description} onChange={e=>setItem(idx,"description",e.target.value)}/></F>
+            <F label="品項說明"><ImeInput className="inp" placeholder="產品 / 服務說明" value={item.description} onChange={v=>setItem(idx,"description",v)}/></F>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
               <F label="數量"><input type="number" className="inp" min="0" value={item.qty} onChange={e=>setItem(idx,"qty",e.target.value)}/></F>
               <F label="單位"><select className="inp" value={item.unit} onChange={e=>setItem(idx,"unit",e.target.value)}>{UNITS.map(u=><option key={u} value={u}>{u}</option>)}</select></F>
               <F label="單價"><input type="number" className="inp" min="0" value={item.unitPrice} onChange={e=>setItem(idx,"unitPrice",e.target.value)}/></F>
             </div>
             <div style={{textAlign:"right",fontSize:12,color:"var(--sub)",marginBottom:8}}>小計：<span style={{color:"var(--accent)",fontWeight:700}}>{fmtN((+item.qty||0)*(+item.unitPrice||0))}</span></div>
-            <F label="備註（選填）"><input className="inp" placeholder="此項備註" value={item.note} onChange={e=>setItem(idx,"note",e.target.value)}/></F>
+            <F label="備註（選填）"><ImeInput className="inp" placeholder="此項備註" value={item.note} onChange={v=>setItem(idx,"note",v)}/></F>
           </div>
         ))}
         <button onClick={addItem} className="btn btn-ghost" style={{width:"100%",padding:"11px",fontSize:13,borderStyle:"dashed"}}>＋ 新增項目</button>
@@ -360,10 +411,10 @@ export default function App() {
         <div className="stitle">其他設定</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <F label="稅率 (%)"><input type="number" className="inp" min="0" max="100" value={taxRate} onChange={e=>setTaxRate(e.target.value)}/></F>
-          <F label="付款條件"><input className="inp" placeholder="例：30天內" value={paymentTerms} onChange={e=>setPaymentTerms(e.target.value)}/></F>
+          <F label="付款條件"><ImeInput className="inp" placeholder="例：30天內" value={paymentTerms} onChange={setPaymentTerms}/></F>
         </div>
-        <F label="銀行匯款資訊"><textarea className="inp" rows={3} placeholder="銀行名稱、帳號、戶名..." value={bankInfo} onChange={e=>setBankInfo(e.target.value)}/></F>
-        <F label="備註說明"><textarea className="inp" rows={4} placeholder="其他說明、注意事項..." value={notes} onChange={e=>setNotes(e.target.value)}/></F>
+        <F label="銀行匯款資訊"><ImeTextarea className="inp" rows={3} placeholder="銀行名稱、帳號、戶名..." value={bankInfo} onChange={setBankInfo}/></F>
+        <F label="備註說明"><ImeTextarea className="inp" rows={4} placeholder="其他說明、注意事項..." value={notes} onChange={setNotes}/></F>
       </>}
     </div>
   );
@@ -390,7 +441,7 @@ export default function App() {
 
         {!isMobile&&(
           <div style={{display:"flex",height:"calc(100vh - 65px)"}}>
-            <div style={{width:"46%",minWidth:340,borderRight:"1px solid var(--border)",overflow:"hidden",display:"flex",flexDirection:"column"}}><FormArea/></div>
+            <div style={{width:"46%",minWidth:340,borderRight:"1px solid var(--border)",overflow:"hidden",display:"flex",flexDirection:"column"}}>{FormArea}</div>
             <div style={{flex:1,overflowY:"auto",background:"#0d1117",padding:20}}>
               <div style={{fontSize:11,color:"var(--muted)",marginBottom:12,textAlign:"center",fontWeight:600,letterSpacing:1}}>📄 即時預覽</div>
               <div style={{background:"white",borderRadius:10,padding:"28px 32px",boxShadow:"0 8px 40px rgba(0,0,0,.5)"}}><Preview f={form}/></div>
@@ -401,7 +452,7 @@ export default function App() {
         {isMobile&&(
           <>
             <div style={{height:"calc(100vh - 57px)",overflowY:"auto"}}>
-              {mobileTab==="form"&&<FormArea/>}
+              {mobileTab==="form"&&FormArea}
               {mobileTab==="preview"&&(
                 <div style={{padding:"14px 14px 100px",background:"#0d1117",minHeight:"100%"}}>
                   <div style={{fontSize:11,color:"var(--muted)",marginBottom:12,textAlign:"center",fontWeight:600}}>📄 報價單預覽</div>
