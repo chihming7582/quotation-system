@@ -496,7 +496,7 @@ window.newQuote=()=>{
     const mk=k.replace("f-","m-");const m=g(mk);if(m)m.value=val;
   });
   ["sel-cli","sel-cli-m","sel-cli-m2"].forEach(id=>{const e=g(id);if(e)e.value="";});
-  items=[{id:itemId++,description:"",qty:1,unit:"式",unitPrice:0,note:""}];
+  items=[{id:itemId++,description:"",qty:1,unit:"支",unitPrice:0,note:""}];
   renderItems();upd();toast("📄 新報價單已建立");
 };
 
