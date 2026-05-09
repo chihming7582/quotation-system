@@ -1,16 +1,497 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="報價單" />
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <title>報價單系統</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="報價單"/>
+<title>報價單系統</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;}
+body{background:#0b0f1a;color:#f0f4ff;}
+input,textarea,select{font-family:inherit;}
+.inp{width:100%;background:#0d1526;border:1.5px solid #1e2d45;border-radius:8px;padding:9px 12px;font-size:13px;color:#f0f4ff;transition:border-color .2s;outline:none;}
+.inp:focus{border-color:#e8a020;}
+.inp::placeholder{color:#3d5066;}
+textarea.inp{resize:vertical;}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%2364748b'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+button{font-family:inherit;cursor:pointer;}
+.btn-p{border:none;border-radius:8px;font-weight:600;background:linear-gradient(135deg,#e8a020,#c97d10);color:#0b0f1a;padding:9px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;}
+.btn-g{border:1.5px solid #1e2d45;border-radius:8px;font-weight:600;background:transparent;color:#94a3b8;padding:8px 14px;font-size:13px;}
+.btn-s{border:none;border-radius:8px;font-weight:600;background:linear-gradient(135deg,#059669,#047857);color:white;padding:11px;width:100%;font-size:13px;}
+.btn-d{border:1px solid #7f1d1d;border-radius:6px;font-weight:600;background:#450a0a;color:#fca5a5;padding:4px 10px;font-size:11px;}
+.card{background:#1a2236;border:1px solid #1e2d45;border-radius:12px;padding:16px;}
+.lbl{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:block;}
+.stitle{font-size:11px;font-weight:700;color:#e8a020;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+.fld{margin-bottom:12px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+#hdr{background:#111827;border-bottom:1px solid #1e2d45;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#e8a020,#c97d10);display:flex;align-items:center;justify-content:center;font-size:18px;}
+#layout{display:flex;height:calc(100vh - 65px);}
+#left{width:46%;min-width:320px;border-right:1px solid #1e2d45;overflow-y:auto;padding:20px;}
+#right{flex:1;overflow-y:auto;background:#0d1117;padding:20px;}
+#stabs{display:flex;gap:4px;margin-bottom:14px;background:#111827;border-radius:10px;padding:4px;}
+.stab{flex:1;padding:8px 2px;border-radius:7px;border:none;background:transparent;color:#64748b;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .2s;}
+.stab .si{font-size:15px;}
+.stab.on{background:#e8a020;color:#0b0f1a;font-weight:700;}
+.sec{display:none;}.sec.on{display:block;}
+.prev-lbl{font-size:11px;color:#64748b;margin-bottom:12px;text-align:center;font-weight:600;letter-spacing:1px;}
+#preview-wrap,#mob-preview-wrap{background:white;border-radius:10px;padding:28px 32px;box-shadow:0 8px 40px rgba(0,0,0,.5);}
+#mob-preview-wrap{padding:16px;}
+#sync-bar{display:flex;align-items:center;margin-bottom:12px;font-size:11px;color:#64748b;}
+.sdot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:5px;box-shadow:0 0 6px #22c55e;}
+.sdot.spin{background:#f59e0b;box-shadow:0 0 6px #f59e0b;animation:pulse .8s infinite;}
+.sdot.bad{background:#ef4444;box-shadow:0 0 6px #ef4444;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#064e3b;color:#6ee7b7;border:1px solid #065f46;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;z-index:9999;white-space:nowrap;pointer-events:none;display:none;}
+#toast.err{background:#450a0a;color:#fca5a5;border-color:#7f1d1d;}
+.item-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.item-sub{text-align:right;font-size:12px;color:#94a3b8;margin-bottom:8px;}
+.item-sub span{color:#e8a020;font-weight:700;}
+.tot-row{display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:6px;}
+.tot-final{display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#e8a020;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#1e2d45;border-radius:2px;}
+/* Quote paper */
+.qp{background:white;color:#1a1a1a;font-size:12px;line-height:1.6;}
+.qp-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #1d3461;}
+.qp-co{font-size:22px;font-weight:800;color:#1d3461;}
+.qp-sub{font-size:10px;color:#666;margin-top:2px;}
+.qp-ttl{font-size:20px;font-weight:800;color:#1d3461;letter-spacing:3px;text-align:right;}
+.qp-ttl2{font-size:9px;color:#999;letter-spacing:2px;text-align:right;}
+.qp-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.qp-cl{background:#f0f4f8;border-radius:8px;padding:10px 12px;border-left:4px solid #1d3461;}
+.qp-cl-h{font-size:9px;color:#777;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
+.qp-cl-n{font-weight:700;font-size:13px;}
+.qp-cl-s{font-size:11px;color:#555;margin-top:2px;}
+.qp-cl-i{font-size:10px;color:#666;}
+.qp-inf{background:#f8fafc;border-radius:8px;padding:10px 12px;}
+.qp-ir{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.qp-ik{color:#888;}.qp-iv{font-weight:600;}
+.qp-tbl{width:100%;border-collapse:collapse;margin-bottom:12px;}
+.qp-tbl th{padding:8px;font-size:10px;font-weight:700;background:#1d3461;color:white;}
+.qp-tbl td{padding:8px;border-bottom:1px solid #e5e7eb;font-size:12px;}
+.qp-tbl tr:nth-child(even) td{background:#f8fafc;}
+.qp-tw{display:flex;justify-content:flex-end;margin-bottom:16px;}
+.qp-tb{min-width:220px;}
+.qp-tr{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e5e7eb;font-size:12px;}
+.qp-trk{color:#666;}
+.qp-tf{display:flex;justify-content:space-between;padding:10px 12px;background:#1d3461;border-radius:6px;margin-top:6px;}
+.qp-tfk{color:white;font-weight:700;font-size:13px;}
+.qp-tfv{color:#fbbf24;font-weight:800;font-size:15px;}
+.qp-ex{display:grid;gap:10px;margin-bottom:14px;}
+.qp-exb{border-radius:8px;padding:10px 12px;}
+.qp-exh{font-size:9px;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
+.qp-bank{background:#eff6ff;border:1px solid #bfdbfe;}.qp-bank .qp-exh{color:#1d4ed8;}
+.qp-notes{background:#fffbeb;border:1px solid #fde68a;}.qp-notes .qp-exh{color:#92400e;}
+.qp-exbd{font-size:10px;white-space:pre-line;line-height:1.7;}
+.qp-ft{border-top:2px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;align-items:center;}
+.qp-fid{font-size:9px;color:#bbb;}
+.qp-sigs{display:flex;gap:32px;}
+.qp-sig{text-align:center;}
+.qp-sigl{border-top:1px solid #aaa;padding-top:4px;width:90px;font-size:9px;color:#999;}
+/* Mobile */
+@media(max-width:767px){
+  #hdr{padding:12px 14px;}
+  #hdr h1{font-size:15px;}
+  #hdr .desk-sub{display:none;}
+  #layout{display:none;}
+  #mob{display:block;height:calc(100vh - 57px);overflow-y:auto;}
+  .mob-panel{display:none;}.mob-panel.on{display:block;}
+  #mob-left{padding:14px 14px 90px;}
+  #mob-right{padding:14px 14px 90px;background:#0d1117;min-height:100%;}
+  #mob-clients{padding:14px 14px 90px;}
+  #mob-nav{display:flex;background:#111827;border-top:1px solid #1e2d45;position:fixed;bottom:0;left:0;right:0;z-index:100;}
+  .mnb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 14px;border:none;background:none;color:#64748b;font-family:inherit;font-size:10px;gap:3px;transition:color .2s;}
+  .mnb .mi{font-size:20px;}
+  .mnb.on{color:#e8a020;}
+  .btn-p.mob-only{display:flex;}
+  #btn-new .dk{display:none;}
+  #btn-pdf .dk{display:none;}
+}
+@media(min-width:768px){
+  #mob{display:none;}
+  #mob-nav{display:none;}
+  #layout{display:flex;}
+  #btn-new .mob{display:none;}
+  #btn-pdf .mob{display:none;}
+}
+@media print{
+  @page{size:A4;margin:10mm;}
+  body>*{display:none!important;}
+  #printable{display:block!important;position:fixed;top:0;left:0;width:100%;background:white;z-index:99999;padding:20px;}
+}
+#printable{display:none;}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="printable"><div class="qp" id="print-content"></div></div>
+
+<div id="hdr">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="logo">📋</div>
+    <div>
+      <h1 style="font-size:18px;font-weight:800;letter-spacing:-.5px;">報價單系統</h1>
+      <div class="desk-sub" style="font-size:10px;color:#64748b;">☁️ 雲端同步版</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button id="btn-new" class="btn-g" onclick="newQuote()"><span class="mob">＋</span><span class="dk">＋ 新報價單</span></button>
+    <button id="btn-pdf" class="btn-p" onclick="handlePrint()"><span class="mob">⬇PDF</span><span class="dk">⬇ 匯出 PDF</span></button>
+  </div>
+</div>
+
+<!-- Desktop -->
+<div id="layout">
+  <div id="left">
+    <div id="sync-bar"><span class="sdot spin" id="sdot"></span><span id="stxt">連接中...</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#e8a020;margin-bottom:10px;">📁 舊客戶快速填入</div>
+      <select class="inp" id="sel-cli" onchange="pickClient(this.value,'desk')">
+        <option value="">— 選擇舊客戶 —</option>
+      </select>
+    </div>
+    <div id="stabs">
+      <button class="stab on" onclick="tab(this,'basic')"><span class="si">📋</span>基本</button>
+      <button class="stab" onclick="tab(this,'client')"><span class="si">👤</span>客戶</button>
+      <button class="stab" onclick="tab(this,'items')"><span class="si">📦</span>項目</button>
+      <button class="stab" onclick="tab(this,'other')"><span class="si">⚙️</span>其他</button>
+    </div>
+    <div class="sec on" id="s-basic">
+      <div class="stitle">報價單資訊</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">報價單號</label><input class="inp" id="f-qn" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">報價日期</label><input type="date" class="inp" id="f-qd" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">有效天數</label><input type="number" class="inp" id="f-vd" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">幣別</label><select class="inp" id="f-cy" onchange="upd()"><option value="TWD">TWD NT$</option><option value="USD">USD US$</option><option value="CNY">CNY ¥</option><option value="EUR">EUR €</option><option value="JPY">JPY ¥</option><option value="HKD">HKD HK$</option></select></div>
+      </div>
+      <div class="stitle">我方公司資訊</div>
+      <div class="fld"><label class="lbl">公司名稱</label><input class="inp" id="f-cn" placeholder="您的公司名稱" oninput="upd()"></div>
+      <div class="fld"><label class="lbl">地址</label><input class="inp" id="f-ca" placeholder="公司地址" oninput="upd()"></div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">電話</label><input class="inp" id="f-cp" placeholder="電話" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">Email</label><input class="inp" id="f-ce" placeholder="Email" oninput="upd()"></div>
+      </div>
+    </div>
+    <div class="sec" id="s-client">
+      <div class="stitle">客戶資料</div>
+      <div class="fld"><label class="lbl">聯絡人姓名</label><input class="inp" id="f-ln" placeholder="聯絡人" oninput="upd()"></div>
+      <div class="fld"><label class="lbl">客戶公司</label><input class="inp" id="f-lc" placeholder="公司名稱" oninput="upd()"></div>
+      <div class="fld"><label class="lbl">地址</label><input class="inp" id="f-la" placeholder="地址" oninput="upd()"></div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">電話</label><input class="inp" id="f-lp" placeholder="電話" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">Email</label><input class="inp" id="f-le" placeholder="Email" oninput="upd()"></div>
+      </div>
+      <button class="btn-s" onclick="saveCli()">☁️ 儲存至雲端</button>
+      <div id="cli-list" style="margin-top:16px;"></div>
+    </div>
+    <div class="sec" id="s-items">
+      <div class="stitle">報價項目</div>
+      <div id="items-wrap"></div>
+      <button class="btn-g" onclick="addItem()" style="width:100%;padding:11px;border-style:dashed;margin-top:0;">＋ 新增項目</button>
+      <div class="card" style="margin-top:14px;background:#0d1a2d;">
+        <div class="tot-row"><span>小計</span><span id="tt-sub">NT$ 0</span></div>
+        <div class="tot-row" id="tt-tax-row"><span id="tt-tax-lbl">稅金 (5%)</span><span id="tt-tax">NT$ 0</span></div>
+        <div class="tot-final"><span>總計</span><span id="tt-tot">NT$ 0</span></div>
+      </div>
+    </div>
+    <div class="sec" id="s-other">
+      <div class="stitle">其他設定</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="f-tr" value="5" min="0" max="100" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="f-pt" placeholder="例：30天內" oninput="upd()"></div>
+      </div>
+      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="f-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="upd()"></textarea></div>
+      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="f-nt" rows="4" placeholder="其他說明、注意事項..." oninput="upd()"></textarea></div>
+    </div>
+  </div>
+  <div id="right">
+    <div class="prev-lbl">📄 即時預覽</div>
+    <div id="preview-wrap"><div class="qp" id="prev"></div></div>
+  </div>
+</div>
+
+<!-- Mobile -->
+<div id="mob">
+  <div id="mob-left" class="mob-panel on">
+    <div style="display:flex;align-items:center;margin-bottom:12px;font-size:11px;color:#64748b;"><span class="sdot spin" id="sdot-m"></span><span id="stxt-m">連接中...</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#e8a020;margin-bottom:10px;">📁 舊客戶快速填入</div>
+      <select class="inp" id="sel-cli-m" onchange="pickClient(this.value,'mob')"><option value="">— 選擇舊客戶 —</option></select>
+    </div>
+    <div id="stabs-m" style="display:flex;gap:4px;margin-bottom:14px;background:#111827;border-radius:10px;padding:4px;">
+      <button class="stab on" onclick="tabM(this,'basic')"><span class="si">📋</span>基本</button>
+      <button class="stab" onclick="tabM(this,'client')"><span class="si">👤</span>客戶</button>
+      <button class="stab" onclick="tabM(this,'items')"><span class="si">📦</span>項目</button>
+      <button class="stab" onclick="tabM(this,'other')"><span class="si">⚙️</span>其他</button>
+    </div>
+    <div class="sec on" id="sm-basic">
+      <div class="stitle">報價單資訊</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">報價單號</label><input class="inp" id="m-qn" oninput="syncM('f-qn',this.value)"></div>
+        <div class="fld"><label class="lbl">報價日期</label><input type="date" class="inp" id="m-qd" oninput="syncM('f-qd',this.value)"></div>
+        <div class="fld"><label class="lbl">有效天數</label><input type="number" class="inp" id="m-vd" oninput="syncM('f-vd',this.value)"></div>
+        <div class="fld"><label class="lbl">幣別</label><select class="inp" id="m-cy" onchange="syncM('f-cy',this.value)"><option value="TWD">TWD NT$</option><option value="USD">USD US$</option><option value="CNY">CNY ¥</option><option value="EUR">EUR €</option><option value="JPY">JPY ¥</option><option value="HKD">HKD HK$</option></select></div>
+      </div>
+      <div class="stitle">我方公司資訊</div>
+      <div class="fld"><label class="lbl">公司名稱</label><input class="inp" id="m-cn" placeholder="您的公司名稱" oninput="syncM('f-cn',this.value)"></div>
+      <div class="fld"><label class="lbl">地址</label><input class="inp" id="m-ca" placeholder="公司地址" oninput="syncM('f-ca',this.value)"></div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">電話</label><input class="inp" id="m-cp" placeholder="電話" oninput="syncM('f-cp',this.value)"></div>
+        <div class="fld"><label class="lbl">Email</label><input class="inp" id="m-ce" placeholder="Email" oninput="syncM('f-ce',this.value)"></div>
+      </div>
+    </div>
+    <div class="sec" id="sm-client">
+      <div class="stitle">客戶資料</div>
+      <div class="fld"><label class="lbl">聯絡人姓名</label><input class="inp" id="m-ln" placeholder="聯絡人" oninput="syncM('f-ln',this.value)"></div>
+      <div class="fld"><label class="lbl">客戶公司</label><input class="inp" id="m-lc" placeholder="公司名稱" oninput="syncM('f-lc',this.value)"></div>
+      <div class="fld"><label class="lbl">地址</label><input class="inp" id="m-la" placeholder="地址" oninput="syncM('f-la',this.value)"></div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">電話</label><input class="inp" id="m-lp" placeholder="電話" oninput="syncM('f-lp',this.value)"></div>
+        <div class="fld"><label class="lbl">Email</label><input class="inp" id="m-le" placeholder="Email" oninput="syncM('f-le',this.value)"></div>
+      </div>
+      <button class="btn-s" onclick="saveCli()">☁️ 儲存至雲端</button>
+      <div id="m-cli-list" style="margin-top:16px;"></div>
+    </div>
+    <div class="sec" id="sm-items">
+      <div class="stitle">報價項目</div>
+      <div id="m-items-wrap"></div>
+      <button class="btn-g" onclick="addItem()" style="width:100%;padding:11px;border-style:dashed;">＋ 新增項目</button>
+      <div class="card" style="margin-top:14px;background:#0d1a2d;">
+        <div class="tot-row"><span>小計</span><span id="mt-sub">NT$ 0</span></div>
+        <div class="tot-row" id="mt-tax-row"><span id="mt-tax-lbl">稅金 (5%)</span><span id="mt-tax">NT$ 0</span></div>
+        <div class="tot-final"><span>總計</span><span id="mt-tot">NT$ 0</span></div>
+      </div>
+    </div>
+    <div class="sec" id="sm-other">
+      <div class="stitle">其他設定</div>
+      <div class="g2">
+        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="m-tr" value="5" min="0" max="100" oninput="syncM('f-tr',this.value)"></div>
+        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="m-pt" placeholder="例：30天內" oninput="syncM('f-pt',this.value)"></div>
+      </div>
+      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="m-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="syncM('f-bi',this.value)"></textarea></div>
+      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="m-nt" rows="4" placeholder="其他說明、注意事項..." oninput="syncM('f-nt',this.value)"></textarea></div>
+    </div>
+  </div>
+  <div id="mob-right" class="mob-panel">
+    <div class="prev-lbl">📄 報價單預覽</div>
+    <div id="mob-preview-wrap"><div class="qp" id="mob-prev"></div></div>
+    <button class="btn-p" style="width:100%;margin-top:16px;padding:14px;font-size:14px;" onclick="handlePrint()">⬇ 匯出 PDF</button>
+  </div>
+  <div id="mob-clients" class="mob-panel">
+    <div class="stitle">客戶資料庫（雲端同步）</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#e8a020;margin-bottom:10px;">快速填入</div>
+      <select class="inp" id="sel-cli-m2" onchange="pickClientFull(this.value)"><option value="">— 選擇舊客戶 —</option></select>
+    </div>
+    <div id="mc-list"></div>
+  </div>
+</div>
+
+<nav id="mob-nav">
+  <button class="mnb on" id="mn-form" onclick="mobTab(this,'mob-left')"><span class="mi">✏️</span>填寫</button>
+  <button class="mnb" id="mn-prev" onclick="mobTab(this,'mob-right');upd()"><span class="mi">👁️</span>預覽</button>
+  <button class="mnb" id="mn-cli" onclick="mobTab(this,'mob-clients')"><span class="mi">👥</span><span id="mn-cli-lbl">客戶</span></button>
+</nav>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const FA=initializeApp({apiKey:"AIzaSyAofc5wnrwfrml5WtjZGIfJkydhstfmfRs",authDomain:"quotation-system-1c2fb.firebaseapp.com",projectId:"quotation-system-1c2fb",storageBucket:"quotation-system-1c2fb.firebasestorage.app",messagingSenderId:"865094658053",appId:"1:865094658053:web:9c7a8cb4a5d424551b146c"});
+const DB=getFirestore(FA);
+const CUR={TWD:"NT$",USD:"US$",CNY:"¥",EUR:"€",JPY:"¥",HKD:"HK$"};
+const UNITS=["式","個","件","台","組","批","月","次","小時","天","項","套","瓶","箱","公斤"];
+const QK="qs_qnum_v4";
+let clients=[],items=[{id:1,description:"",qty:1,unit:"式",unitPrice:0,note:""}],itemId=2;
+
+const g=id=>document.getElementById(id);
+const v=id=>(g(id)||{}).value||"";
+const fmtN=(n,sym)=>`${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
+
+function genQN(){const n=parseInt(localStorage.getItem(QK)||"1000")+1;localStorage.setItem(QK,n);return`QT-${new Date().getFullYear()}-${String(n).padStart(4,"0")}`;}
+
+function setSync(s){
+  const m={synced:["","雲端同步正常 ✓"],syncing:["spin","同步中..."],error:["bad","同步異常"]};
+  const[c,t]=m[s]||m.syncing;
+  [g("sdot"),g("sdot-m")].forEach(d=>{if(d){d.className="sdot"+(c?" "+c:"");}});
+  [g("stxt"),g("stxt-m")].forEach(x=>{if(x)x.textContent=t;});
+}
+
+function toast(msg,err=false){const t=g("toast");t.textContent=msg;t.className=err?"err":"";t.style.display="block";setTimeout(()=>t.style.display="none",2500);}
+
+// Section tabs
+window.tab=(btn,k)=>{
+  g("stabs").querySelectorAll(".stab").forEach(b=>b.classList.remove("on"));
+  document.querySelectorAll("#left .sec").forEach(s=>s.classList.remove("on"));
+  btn.classList.add("on");g("s-"+k).classList.add("on");
+};
+window.tabM=(btn,k)=>{
+  g("stabs-m").querySelectorAll(".stab").forEach(b=>b.classList.remove("on"));
+  document.querySelectorAll("#mob-left .sec").forEach(s=>s.classList.remove("on"));
+  btn.classList.add("on");g("sm-"+k).classList.add("on");
+};
+window.mobTab=(btn,panelId)=>{
+  document.querySelectorAll(".mnb").forEach(b=>b.classList.remove("on"));
+  document.querySelectorAll(".mob-panel").forEach(p=>p.classList.remove("on"));
+  btn.classList.add("on");g(panelId).classList.add("on");
+};
+
+// Sync mobile <-> desktop
+window.syncM=(did,val)=>{const e=g(did);if(e)e.value=val;upd();};
+
+// Items
+function renderItems(){
+  ["items-wrap","m-items-wrap"].forEach(wid=>{
+    const wrap=g(wid);if(!wrap)return;
+    const mob=wid.startsWith("m-");
+    const p=mob?"mi-":"di-";
+    const sym=CUR[v("f-cy")]||"NT$";
+    wrap.innerHTML="";
+    items.forEach((item,idx)=>{
+      const div=document.createElement("div");
+      div.className="card";div.style.marginBottom="12px";
+      const uopts=UNITS.map(u=>`<option${u===item.unit?" selected":""}>${u}</option>`).join("");
+      div.innerHTML=`
+        <div class="item-hdr">
+          <span style="font-size:12px;font-weight:700;color:#e8a020;">項目 ${idx+1}</span>
+          ${items.length>1?`<button class="btn-d" onclick="removeItem(${idx})">刪除</button>`:""}
+        </div>
+        <div class="fld"><label class="lbl">品項說明</label><input class="inp" value="${item.description.replace(/"/g,'&quot;')}" placeholder="產品 / 服務說明" oninput="setIV(${idx},'description',this.value)"></div>
+        <div class="g3">
+          <div class="fld"><label class="lbl">數量</label><input type="number" class="inp" value="${item.qty}" min="0" oninput="setIV(${idx},'qty',this.value)"></div>
+          <div class="fld"><label class="lbl">單位</label><select class="inp" onchange="setIV(${idx},'unit',this.value)">${uopts}</select></div>
+          <div class="fld"><label class="lbl">單價</label><input type="number" class="inp" value="${item.unitPrice}" min="0" oninput="setIV(${idx},'unitPrice',this.value)"></div>
+        </div>
+        <div class="item-sub">小計：<span>${fmtN((+item.qty||0)*(+item.unitPrice||0),sym)}</span></div>
+        <div class="fld"><label class="lbl">備註（選填）</label><input class="inp" value="${(item.note||"").replace(/"/g,'&quot;')}" placeholder="此項備註" oninput="setIV(${idx},'note',this.value)"></div>
+      `;
+      wrap.appendChild(div);
+    });
+  });
+  updTotals();
+}
+
+window.setIV=(idx,k,val)=>{items[idx][k]=val;updTotals();upd();};
+window.addItem=()=>{items.push({id:itemId++,description:"",qty:1,unit:"式",unitPrice:0,note:""});renderItems();upd();};
+window.removeItem=(idx)=>{items.splice(idx,1);renderItems();upd();};
+
+function updTotals(){
+  const sym=CUR[v("f-cy")]||"NT$";
+  const tr=parseFloat(v("f-tr"))||0;
+  const sub=items.reduce((s,i)=>s+(+(i.qty)||0)*(+(i.unitPrice)||0),0);
+  const tax=sub*tr/100;const tot=sub+tax;
+  [["tt-sub","mt-sub"],["tt-tax-lbl","mt-tax-lbl"],["tt-tax","mt-tax"],["tt-tot","mt-tot"],["tt-tax-row","mt-tax-row"]].forEach(([a,b])=>{});
+  const pairs=[["tt","mt"]];
+  ["","m"].forEach(pfx=>{
+    const p=pfx?"mt-":"tt-";
+    const es=g(p+"sub");if(es)es.textContent=fmtN(sub,sym);
+    const et=g(p+"tax");if(et)et.textContent=fmtN(tax,sym);
+    const etl=g(p+"tax-lbl");if(etl)etl.textContent=`稅金 (${tr}%)`;
+    const etr=g(p+"tax-row");if(etr)etr.style.display=tr>0?"flex":"none";
+    const ef=g(p+"tot");if(ef)ef.textContent=fmtN(tot,sym);
+  });
+}
+
+// Build preview HTML
+function buildQP(){
+  const sym=CUR[v("f-cy")]||"NT$";
+  const n=x=>fmtN(x,sym);
+  const sub=items.reduce((s,i)=>s+(+(i.qty)||0)*(+(i.unitPrice)||0),0);
+  const tr=parseFloat(v("f-tr"))||0;
+  const tax=sub*tr/100;const tot=sub+tax;
+  const rows=items.map((item,idx)=>`<tr><td style="text-align:center;color:#aaa;">${idx+1}</td><td><div style="font-weight:500">${item.description||"—"}</div>${item.note?`<div style="font-size:10px;color:#888;font-style:italic">※ ${item.note}</div>`:""}</td><td style="text-align:right">${item.qty}</td><td style="text-align:right;color:#666">${item.unit}</td><td style="text-align:right">${n(+(item.unitPrice)||0)}</td><td style="text-align:right;font-weight:700;color:#1d3461">${n((+(item.qty)||0)*(+(item.unitPrice)||0))}</td></tr>`).join("");
+  const bi=v("f-bi"),nt=v("f-nt");
+  const extra=bi||nt?`<div class="qp-ex" style="grid-template-columns:${bi&&nt?"1fr 1fr":"1fr"}">${bi?`<div class="qp-exb qp-bank"><div class="qp-exh">匯款資訊</div><div class="qp-exbd">${bi}</div></div>`:""}${nt?`<div class="qp-exb qp-notes"><div class="qp-exh">備註說明</div><div class="qp-exbd">${nt}</div></div>`:""}</div>`:"";
+  const clco=v("f-lc"),clna=v("f-ln");
+  return`<div class="qp-hdr"><div><div class="qp-co">${v("f-cn")||"公司名稱"}</div>${v("f-ca")?`<div class="qp-sub">${v("f-ca")}</div>`:""} ${(v("f-cp")||v("f-ce"))?`<div class="qp-sub">${[v("f-cp"),v("f-ce")].filter(Boolean).join(" · ")}</div>`:""}</div><div><div class="qp-ttl">報 價 單</div><div class="qp-ttl2">QUOTATION</div></div></div><div class="qp-meta"><div class="qp-cl"><div class="qp-cl-h">報價對象</div><div class="qp-cl-n">${clco||clna||"客戶名稱"}</div>${clco&&clna?`<div class="qp-cl-s">聯絡人：${clna}</div>`:""} ${v("f-la")?`<div class="qp-cl-i">${v("f-la")}</div>`:""} ${v("f-lp")?`<div class="qp-cl-i">Tel: ${v("f-lp")}</div>`:""} ${v("f-le")?`<div class="qp-cl-i">${v("f-le")}</div>`:""}</div><div class="qp-inf">${[["報價單號",v("f-qn")],["報價日期",v("f-qd")],["有效天數",v("f-vd")?v("f-vd")+" 天":""],["幣別",v("f-cy")],["付款條件",v("f-pt")]].filter(([,x])=>x).map(([k,x])=>`<div class="qp-ir"><span class="qp-ik">${k}：</span><span class="qp-iv">${x}</span></div>`).join("")}</div></div><table class="qp-tbl"><thead><tr><th style="text-align:center">#</th><th style="text-align:left">品項說明</th><th style="text-align:right">數量</th><th style="text-align:right">單位</th><th style="text-align:right">單價</th><th style="text-align:right">小計</th></tr></thead><tbody>${rows}</tbody></table><div class="qp-tw"><div class="qp-tb"><div class="qp-tr"><span class="qp-trk">小計</span><span>${n(sub)}</span></div>${tr>0?`<div class="qp-tr"><span class="qp-trk">稅金（${tr}%）</span><span>${n(tax)}</span></div>`:""}<div class="qp-tf"><span class="qp-tfk">總計</span><span class="qp-tfv">${n(tot)}</span></div></div></div>${extra}<div class="qp-ft"><div class="qp-fid">此報價單由系統產生 · ${v("f-qn")}</div><div class="qp-sigs"><div class="qp-sig"><div class="qp-sigl">客戶簽名</div></div><div class="qp-sig"><div class="qp-sigl">業務簽名</div></div></div></div>`;
+}
+
+let updTimer=null;
+window.upd=()=>{clearTimeout(updTimer);updTimer=setTimeout(()=>{const h=buildQP();const p=g("prev");if(p)p.innerHTML=h;const mp=g("mob-prev");if(mp)mp.innerHTML=h;g("print-content").innerHTML=h;updTotals();},30);};
+
+// Clients
+function renderDropdowns(){
+  const opts=`<option value="">— 選擇舊客戶 —</option>`+clients.map(c=>`<option value="${c.id}">${c.company||c.name}${c.company&&c.name?` (${c.name})`:""}</option>`).join("");
+  ["sel-cli","sel-cli-m","sel-cli-m2"].forEach(id=>{const e=g(id);if(e)e.innerHTML=opts;});
+  g("mn-cli-lbl").textContent=`客戶${clients.length>0?`(${clients.length})`:""}`;
+}
+
+function renderCliLists(){
+  const empty=`<div style="text-align:center;color:#64748b;font-size:13px;padding:20px 0">尚無儲存的客戶</div>`;
+  const html=clients.length===0?empty:clients.map(c=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:10px 12px;"><div><div style="font-size:13px;font-weight:600">${c.company||c.name}</div>${c.company&&c.name?`<div style="font-size:11px;color:#64748b">${c.name}</div>`:""}${c.phone?`<div style="font-size:10px;color:#94a3b8">${c.phone}</div>`:""}</div><div style="display:flex;gap:6px;"><button class="btn-g" style="padding:5px 10px;font-size:11px;" onclick="pickClient('${c.id}','desk')">選用</button><button class="btn-d" onclick="delCli('${c.id}')">×</button></div></div>`).join("");
+  [g("cli-list"),g("m-cli-list")].forEach(e=>{if(e)e.innerHTML=html;});
+  g("mc-list").innerHTML=clients.length===0?`<div style="text-align:center;color:#64748b;font-size:13px;padding:30px 0"><div style="font-size:32px;margin-bottom:10px">📂</div><div>尚無儲存的客戶</div></div>`:clients.map(c=>`<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:700;font-size:14px">${c.company||c.name}</div>${c.company&&c.name?`<div style="font-size:12px;color:#94a3b8">${c.name}</div>`:""}${c.phone?`<div style="font-size:11px;color:#64748b">${c.phone}</div>`:""}</div><button class="btn-d" onclick="delCli('${c.id}')">×</button></div><button class="btn-g" style="width:100%;margin-top:10px;padding:8px;font-size:12px" onclick="pickClientFull('${c.id}')">選用此客戶 →</button></div>`).join("");
+}
+
+function fillCli(c){
+  const map={"f-ln":c.name||"","f-lc":c.company||"","f-la":c.address||"","f-lp":c.phone||"","f-le":c.email||""};
+  Object.entries(map).forEach(([k,val])=>{
+    const d=g(k);if(d)d.value=val;
+    const mk=k.replace("f-","m-");const m=g(mk);if(m)m.value=val;
+  });
+  upd();
+}
+
+window.pickClient=(id,from)=>{
+  ["sel-cli","sel-cli-m"].forEach(sid=>{const e=g(sid);if(e)e.value=id;});
+  if(!id)return;const c=clients.find(x=>x.id===id);if(c)fillCli(c);
+};
+window.pickClientFull=(id)=>{
+  pickClient(id,"mob");
+  toast("✅ 已填入客戶資料");
+  document.querySelectorAll(".mnb").forEach(b=>b.classList.remove("on"));
+  document.querySelectorAll(".mob-panel").forEach(p=>p.classList.remove("on"));
+  g("mn-form").classList.add("on");g("mob-left").classList.add("on");
+};
+
+window.saveCli=async()=>{
+  const name=v("f-ln"),company=v("f-lc");
+  if(!name&&!company){toast("⚠️ 請先填入客戶姓名或公司",true);return;}
+  setSync("syncing");
+  try{
+    const data={name,company,address:v("f-la"),phone:v("f-lp"),email:v("f-le"),updatedAt:Date.now()};
+    const ex=clients.find(c=>c.company===company&&c.name===name);
+    if(ex){await updateDoc(doc(DB,"clients",ex.id),data);toast("✅ 客戶資料已更新");}
+    else{await addDoc(collection(DB,"clients"),{...data,createdAt:Date.now()});toast("✅ 已儲存新客戶（雲端同步）");}
+    setSync("synced");
+  }catch{setSync("error");toast("❌ 儲存失敗，請重試",true);}
+};
+
+window.delCli=async(id)=>{
+  if(!confirm("確定要刪除此客戶嗎？"))return;
+  setSync("syncing");
+  try{await deleteDoc(doc(DB,"clients",id));toast("🗑 已刪除客戶");setSync("synced");}
+  catch{setSync("error");toast("❌ 刪除失敗",true);}
+};
+
+window.handlePrint=()=>{upd();const el=g("printable");el.style.display="block";setTimeout(()=>{window.print();setTimeout(()=>el.style.display="none",800);},200);};
+
+window.newQuote=()=>{
+  if(!confirm("確定要建立新報價單？目前資料將會清空。"))return;
+  const qn=genQN(),today=new Date().toISOString().split("T")[0];
+  const defaults={"f-qn":qn,"f-qd":today,"f-vd":"30","f-cy":"TWD","f-cn":"","f-ca":"","f-cp":"","f-ce":"","f-ln":"","f-lc":"","f-la":"","f-lp":"","f-le":"","f-tr":"5","f-pt":"30天內付清","f-bi":"","f-nt":""};
+  Object.entries(defaults).forEach(([k,val])=>{
+    const d=g(k);if(d)d.value=val;
+    const mk=k.replace("f-","m-");const m=g(mk);if(m)m.value=val;
+  });
+  items=[{id:itemId++,description:"",qty:1,unit:"式",unitPrice:0,note:""}];
+  renderItems();upd();toast("📄 新報價單已建立");
+};
+
+// Firebase listener
+onSnapshot(collection(DB,"clients"),(snap)=>{
+  clients=snap.docs.map(d=>({id:d.id,...d.data()}));
+  clients.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  renderDropdowns();renderCliLists();setSync("synced");
+},()=>setSync("error"));
+
+// Init
+const qn=genQN(),today=new Date().toISOString().split("T")[0];
+[["f-qn",qn],["m-qn",qn],["f-qd",today],["m-qd",today],["f-vd","30"],["m-vd","30"],["f-tr","5"],["m-tr","5"],["f-pt","30天內付清"],["m-pt","30天內付清"]].forEach(([id,val])=>{const e=g(id);if(e)e.value=val;});
+renderItems();upd();
+</script>
+</body>
 </html>
