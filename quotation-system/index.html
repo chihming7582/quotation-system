@@ -198,11 +198,11 @@ button{font-family:inherit;cursor:pointer;}
     <div class="sec" id="s-other">
       <div class="stitle">其他設定</div>
       <div class="g2">
-        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="f-tr" value="5" min="0" max="100" oninput="upd()"></div>
-        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="f-pt" placeholder="例：30天內" oninput="upd()"></div>
+        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="f-tr" value="5" min="0" max="100" oninput="upd();saveMyInfo()"></div>
+        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="f-pt" placeholder="例：30天內" oninput="upd();saveMyInfo()"></div>
       </div>
-      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="f-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="upd()"></textarea></div>
-      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="f-nt" rows="4" placeholder="其他說明、注意事項..." oninput="upd()"></textarea></div>
+      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="f-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="upd();saveMyInfo()"></textarea></div>
+      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="f-nt" rows="4" placeholder="其他說明、注意事項..." oninput="upd();saveMyInfo()"></textarea></div>
     </div>
   </div>
   <div id="right">
@@ -266,11 +266,11 @@ button{font-family:inherit;cursor:pointer;}
     <div class="sec" id="sm-other">
       <div class="stitle">其他設定</div>
       <div class="g2">
-        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="m-tr" value="5" min="0" max="100" oninput="syncM('f-tr',this.value)"></div>
-        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="m-pt" placeholder="例：30天內" oninput="syncM('f-pt',this.value)"></div>
+        <div class="fld"><label class="lbl">稅率 (%)</label><input type="number" class="inp" id="m-tr" value="5" min="0" max="100" oninput="syncM('f-tr',this.value);saveMyInfo()"></div>
+        <div class="fld"><label class="lbl">付款條件</label><input class="inp" id="m-pt" placeholder="例：30天內" oninput="syncM('f-pt',this.value);saveMyInfo()"></div>
       </div>
-      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="m-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="syncM('f-bi',this.value)"></textarea></div>
-      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="m-nt" rows="4" placeholder="其他說明、注意事項..." oninput="syncM('f-nt',this.value)"></textarea></div>
+      <div class="fld"><label class="lbl">銀行匯款資訊</label><textarea class="inp" id="m-bi" rows="3" placeholder="銀行名稱、帳號、戶名..." oninput="syncM('f-bi',this.value);saveMyInfo()"></textarea></div>
+      <div class="fld"><label class="lbl">備註說明</label><textarea class="inp" id="m-nt" rows="4" placeholder="其他說明、注意事項..." oninput="syncM('f-nt',this.value);saveMyInfo()"></textarea></div>
     </div>
   </div>
   <div id="mob-right" class="mob-panel">
@@ -310,15 +310,16 @@ function genQN(){const n=parseInt(localStorage.getItem(QK)||"1000")+1;localStora
 
 // 自動記憶我司資料
 window.saveMyInfo=()=>{
-  const info={cn:v("f-cn"),ca:v("f-ca"),cp:v("f-cp"),ce:v("f-ce")};
+  const info={cn:v("f-cn"),ca:v("f-ca"),cp:v("f-cp"),ce:v("f-ce"),tr:v("f-tr"),pt:v("f-pt"),bi:v("f-bi"),nt:v("f-nt")};
   localStorage.setItem(MY_INFO_KEY,JSON.stringify(info));
 };
 function loadMyInfo(){
   try{
     const info=JSON.parse(localStorage.getItem(MY_INFO_KEY)||"{}");
-    if(info.cn)[["f-cn","m-cn"],["f-ca","m-ca"],["f-cp","m-cp"],["f-ce","m-ce"]].forEach(([dk,mk],i)=>{
-      const keys=["cn","ca","cp","ce"];
-      const val=info[keys[i]]||"";
+    if(!info.cn&&!info.tr)return;
+    [["f-cn","m-cn","cn"],["f-ca","m-ca","ca"],["f-cp","m-cp","cp"],["f-ce","m-ce","ce"],["f-tr","m-tr","tr"],["f-pt","m-pt","pt"],["f-bi","m-bi","bi"],["f-nt","m-nt","nt"]].forEach(([dk,mk,key])=>{
+      const val=info[key]||"";
+      if(!val)return;
       [dk,mk].forEach(id=>{const e=g(id);if(e)e.value=val;});
     });
   }catch{}
@@ -489,7 +490,7 @@ window.newQuote=()=>{
   if(!confirm("確定要建立新報價單？客戶資料與項目將會清空。"))return;
   const qn=genQN(),today=new Date().toISOString().split("T")[0];
   // 只清客戶與項目，保留我司資料
-  const clearFields={"f-qn":qn,"f-qd":today,"f-vd":"30","f-cy":"TWD","f-ln":"","f-lc":"","f-tid":"","f-la":"","f-lp":"","f-le":"","f-tr":"5","f-pt":"30天內付清","f-bi":"","f-nt":""};
+  const clearFields={"f-qn":qn,"f-qd":today,"f-vd":"30","f-cy":"TWD","f-ln":"","f-lc":"","f-tid":"","f-la":"","f-lp":"","f-le":""};
   Object.entries(clearFields).forEach(([k,val])=>{
     const d=g(k);if(d)d.value=val;
     const mk=k.replace("f-","m-");const m=g(mk);if(m)m.value=val;
