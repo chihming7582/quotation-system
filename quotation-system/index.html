@@ -294,7 +294,7 @@ button{font-family:inherit;cursor:pointer;}
 </nav>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,setDoc,getDoc}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const FA=initializeApp({apiKey:"AIzaSyAofc5wnrwfrml5WtjZGIfJkydhstfmfRs",authDomain:"quotation-system-1c2fb.firebaseapp.com",projectId:"quotation-system-1c2fb",storageBucket:"quotation-system-1c2fb.firebasestorage.app",messagingSenderId:"865094658053",appId:"1:865094658053:web:9c7a8cb4a5d424551b146c"});
 const DB=getFirestore(FA);
 const CUR={TWD:"NT$",USD:"US$",CNY:"¥",EUR:"€",JPY:"¥",HKD:"HK$"};
@@ -308,20 +308,38 @@ const fmtN=(n,sym)=>`${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionD
 
 function genQN(){const n=parseInt(localStorage.getItem(QK)||"1000")+1;localStorage.setItem(QK,n);return`QT-${new Date().getFullYear()}-${String(n).padStart(4,"0")}`;}
 
-// 自動記憶我司資料
+// 雲端同步我司資料
+const MY_DOC_ID="company_settings";
+const FIELD_MAP=[["f-cn","m-cn","cn"],["f-ca","m-ca","ca"],["f-cp","m-cp","cp"],["f-ce","m-ce","ce"],["f-tr","m-tr","tr"],["f-pt","m-pt","pt"],["f-bi","m-bi","bi"],["f-nt","m-nt","nt"]];
+
+let saveTimer=null;
 window.saveMyInfo=()=>{
-  const info={cn:v("f-cn"),ca:v("f-ca"),cp:v("f-cp"),ce:v("f-ce"),tr:v("f-tr"),pt:v("f-pt"),bi:v("f-bi"),nt:v("f-nt")};
-  localStorage.setItem(MY_INFO_KEY,JSON.stringify(info));
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    const info={cn:v("f-cn"),ca:v("f-ca"),cp:v("f-cp"),ce:v("f-ce"),tr:v("f-tr"),pt:v("f-pt"),bi:v("f-bi"),nt:v("f-nt"),updatedAt:Date.now()};
+    try{
+      await setDoc(doc(DB,"settings",MY_DOC_ID),info);
+    }catch(e){
+      // fallback to localStorage
+      localStorage.setItem(MY_INFO_KEY,JSON.stringify(info));
+    }
+  },800);
 };
+
+function applyMyInfo(info){
+  FIELD_MAP.forEach(([dk,mk,key])=>{
+    const val=info[key]||"";
+    if(!val)return;
+    [dk,mk].forEach(id=>{const e=g(id);if(e)e.value=val;});
+  });
+  upd();
+}
+
 function loadMyInfo(){
+  // fallback from localStorage while Firebase loads
   try{
     const info=JSON.parse(localStorage.getItem(MY_INFO_KEY)||"{}");
-    if(!info.cn&&!info.tr)return;
-    [["f-cn","m-cn","cn"],["f-ca","m-ca","ca"],["f-cp","m-cp","cp"],["f-ce","m-ce","ce"],["f-tr","m-tr","tr"],["f-pt","m-pt","pt"],["f-bi","m-bi","bi"],["f-nt","m-nt","nt"]].forEach(([dk,mk,key])=>{
-      const val=info[key]||"";
-      if(!val)return;
-      [dk,mk].forEach(id=>{const e=g(id);if(e)e.value=val;});
-    });
+    if(info.cn||info.tr)applyMyInfo(info);
   }catch{}
 }
 
@@ -500,16 +518,26 @@ window.newQuote=()=>{
   renderItems();upd();toast("📄 新報價單已建立");
 };
 
-// Firebase
+// Firebase - clients
 onSnapshot(collection(DB,"clients"),(snap)=>{
   clients=snap.docs.map(d=>({id:d.id,...d.data()}));
   clients.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   renderDropdowns();renderCliLists();setSync("synced");
 },()=>setSync("error"));
 
+// Firebase - settings (my company info)
+onSnapshot(doc(DB,"settings",MY_DOC_ID),(snap)=>{
+  if(snap.exists()){
+    const info=snap.data();
+    applyMyInfo(info);
+    // also save to localStorage as backup
+    localStorage.setItem(MY_INFO_KEY,JSON.stringify(info));
+  }
+},()=>{});
+
 // Init
 const qn=genQN(),today=new Date().toISOString().split("T")[0];
-[["f-qn",qn],["m-qn",qn],["f-qd",today],["m-qd",today],["f-vd","30"],["m-vd","30"],["f-tr","5"],["m-tr","5"],["f-pt","30天內付清"],["m-pt","30天內付清"]].forEach(([id,val])=>{const e=g(id);if(e)e.value=val;});
+[["f-qn",qn],["m-qn",qn],["f-qd",today],["m-qd",today],["f-vd","30"],["m-vd","30"]].forEach(([id,val])=>{const e=g(id);if(e)e.value=val;});
 loadMyInfo();
 renderItems();upd();
 </script>
