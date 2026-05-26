@@ -301,7 +301,7 @@ const CUR={TWD:"NT$",USD:"US$",CNY:"¥",EUR:"€",JPY:"¥",HKD:"HK$"};
 const UNITS=["式","支","批","個"];
 const QK="qs_qnum_v4";
 const MY_INFO_KEY="qs_myinfo_v1";
-let clients=[],items=[{id:1,description:"",qty:1,unit:"式",unitPrice:0,note:""}],itemId=2;
+let clients=[],items=[{id:1,description:"",qty:1,unit:"支",unitPrice:0,note:""}],itemId=2;
 const g=id=>document.getElementById(id);
 const v=id=>(g(id)||{}).value||"";
 const fmtN=(n,sym)=>`${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
@@ -397,7 +397,7 @@ function renderItems(){
   updTotals();
 }
 window.setIV=(idx,k,val)=>{items[idx][k]=val;updTotals();upd();};
-window.addItem=()=>{items.push({id:itemId++,description:"",qty:1,unit:"式",unitPrice:0,note:""});renderItems();upd();};
+window.addItem=()=>{items.push({id:itemId++,description:"",qty:1,unit:"支",unitPrice:0,note:""});renderItems();upd();};
 window.removeItem=(idx)=>{items.splice(idx,1);renderItems();upd();};
 
 function updTotals(){
