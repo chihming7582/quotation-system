@@ -304,7 +304,7 @@ const MY_INFO_KEY="qs_myinfo_v1";
 let clients=[],items=[{id:1,description:"",qty:1,unit:"支",unitPrice:0,note:""}],itemId=2;
 const g=id=>document.getElementById(id);
 const v=id=>(g(id)||{}).value||"";
-const fmtN=(n,sym)=>`${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
+const fmtN=(n,sym)=>`${sym} ${Math.round(Number(n)).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
 
 function genQN(){const n=parseInt(localStorage.getItem(QK)||"1000")+1;localStorage.setItem(QK,n);return`QT-${new Date().getFullYear()}-${String(n).padStart(4,"0")}`;}
 
