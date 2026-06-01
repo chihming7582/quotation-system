@@ -304,7 +304,7 @@ const MY_INFO_KEY="qs_myinfo_v1";
 let clients=[],items=[{id:1,description:"",qty:1,unit:"支",unitPrice:0,note:""}],itemId=2;
 const g=id=>document.getElementById(id);
 const v=id=>(g(id)||{}).value||"";
-const fmtN=(n,sym)=>`${sym} ${Math.round(Number(n)).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
+const fmtN=(n,sym)=>`${sym} ${Number(n).toLocaleString("zh-TW",{minimumFractionDigits:0})}`;
 
 function genQN(){const n=parseInt(localStorage.getItem(QK)||"1000")+1;localStorage.setItem(QK,n);return`QT-${new Date().getFullYear()}-${String(n).padStart(4,"0")}`;}
 
@@ -404,7 +404,7 @@ function updTotals(){
   const sym=CUR[v("f-cy")]||"NT$";
   const tr=parseFloat(v("f-tr"))||0;
   const sub=items.reduce((s,i)=>s+(+(i.qty)||0)*(+(i.unitPrice)||0),0);
-  const tax=sub*tr/100;const tot=sub+tax;
+  const tax=Math.round(sub*tr/100);const tot=sub+tax;
   [["tt-",""],["mt-","m"]].forEach(([p])=>{
     const es=g(p+"sub");if(es)es.textContent=fmtN(sub,sym);
     const et=g(p+"tax");if(et)et.textContent=fmtN(tax,sym);
@@ -419,7 +419,7 @@ function buildQP(){
   const n=x=>fmtN(x,sym);
   const sub=items.reduce((s,i)=>s+(+(i.qty)||0)*(+(i.unitPrice)||0),0);
   const tr=parseFloat(v("f-tr"))||0;
-  const tax=sub*tr/100;const tot=sub+tax;
+  const tax=Math.round(sub*tr/100);const tot=sub+tax;
   const rows=items.map((item,idx)=>`<tr><td style="text-align:center;color:#aaa;">${idx+1}</td><td><div style="font-weight:500">${item.description||"—"}</div>${item.note?`<div style="font-size:10px;color:#888;font-style:italic">※ ${item.note}</div>`:""}</td><td style="text-align:right">${item.qty}</td><td style="text-align:right;color:#666">${item.unit}</td><td style="text-align:right">${n(+(item.unitPrice)||0)}</td><td style="text-align:right;font-weight:700;color:#1d3461">${n((+(item.qty)||0)*(+(item.unitPrice)||0))}</td></tr>`).join("");
   const bi=v("f-bi"),nt=v("f-nt");
   const extra=bi||nt?`<div class="qp-ex" style="grid-template-columns:${bi&&nt?"1fr 1fr":"1fr"}">${bi?`<div class="qp-exb qp-bank"><div class="qp-exh">匯款資訊</div><div class="qp-exbd">${bi}</div></div>`:""}${nt?`<div class="qp-exb qp-notes"><div class="qp-exh">備註說明</div><div class="qp-exbd">${nt}</div></div>`:""}</div>`:"";
