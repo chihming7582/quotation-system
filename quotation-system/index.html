@@ -298,7 +298,7 @@ import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,setDoc,
 const FA=initializeApp({apiKey:"AIzaSyAofc5wnrwfrml5WtjZGIfJkydhstfmfRs",authDomain:"quotation-system-1c2fb.firebaseapp.com",projectId:"quotation-system-1c2fb",storageBucket:"quotation-system-1c2fb.firebasestorage.app",messagingSenderId:"865094658053",appId:"1:865094658053:web:9c7a8cb4a5d424551b146c"});
 const DB=getFirestore(FA);
 const CUR={TWD:"NT$",USD:"US$",CNY:"¥",EUR:"€",JPY:"¥",HKD:"HK$"};
-const UNITS=["式","支","批","個"];
+const UNITS=["式","支","批","個","件"];
 const QK="qs_qnum_v4";
 const MY_INFO_KEY="qs_myinfo_v1";
 let clients=[],items=[{id:1,description:"",qty:1,unit:"支",unitPrice:0,note:""}],itemId=2;
