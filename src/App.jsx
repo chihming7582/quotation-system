@@ -86,6 +86,12 @@ const CSS = `
   .inp { width:100%; background:#0d1526; border:1.5px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); font-family:inherit; transition:border-color .2s; outline:none; }
   .inp:focus { border-color:var(--accent); }
   .inp::placeholder { color:#3d5066; }
+  .client-search { position:relative; }
+  .client-search-results { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:60; max-height:250px; overflow-y:auto; background:#111827; border:1px solid var(--border); border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  .client-search-option { width:100%; display:block; padding:10px 12px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+  .client-search-option:last-child { border-bottom:0; }
+  .client-search-option:hover, .client-search-option:focus { background:#1a2a45; outline:none; }
+  .client-search-meta { margin-top:2px; color:var(--sub); font-size:11px; }
   textarea.inp { resize:vertical; }
   select.inp { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%2364748b'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
   .btn { border:none; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600; transition:all .2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
@@ -128,8 +134,8 @@ function Preview({ f }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,paddingBottom:16,borderBottom:"3px solid #1d3461"}}>
         <div>
           <div style={{fontSize:22,fontWeight:800,color:"#1d3461"}}>{f.companyName||"公司名稱"}</div>
-          {f.companyAddress&&<div style={{fontSize:10,color:"#666",marginTop:3}}>{f.companyAddress}</div>}
-          {(f.companyPhone||f.companyEmail)&&<div style={{fontSize:10,color:"#666"}}>{[f.companyPhone,f.companyEmail].filter(Boolean).join(" · ")}</div>}
+          {f.companyAddress&&<div style={{fontSize:11,color:"#666",marginTop:3}}>{f.companyAddress}</div>}
+          {(f.companyPhone||f.companyEmail)&&<div style={{fontSize:11,color:"#666"}}>{[f.companyPhone,f.companyEmail].filter(Boolean).join(" · ")}</div>}
         </div>
         <div style={{textAlign:"right"}}>
           <div style={{fontSize:20,fontWeight:800,color:"#1d3461",letterSpacing:3}}>報 價 單</div>
@@ -138,16 +144,16 @@ function Preview({ f }) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
         <div style={{background:"#f0f4f8",borderRadius:8,padding:"10px 12px",borderLeft:"4px solid #1d3461"}}>
-          <div style={{fontSize:9,color:"#777",fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>報價對象</div>
-          <div style={{fontWeight:700,fontSize:13}}>{f.clientCompany||f.clientName||"客戶名稱"}</div>
-          {f.clientCompany&&f.clientName&&<div style={{fontSize:11,color:"#555",marginTop:2}}>聯絡人：{f.clientName}</div>}
-          {f.clientAddress&&<div style={{fontSize:10,color:"#666"}}>{f.clientAddress}</div>}
-          {f.clientPhone&&<div style={{fontSize:10,color:"#666"}}>Tel: {f.clientPhone}</div>}
-          {f.clientEmail&&<div style={{fontSize:10,color:"#666"}}>{f.clientEmail}</div>}
+          <div style={{fontSize:10,color:"#777",fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>報價對象</div>
+          <div style={{fontWeight:700,fontSize:15}}>{f.clientCompany||f.clientName||"客戶名稱"}</div>
+          {f.clientCompany&&f.clientName&&<div style={{fontSize:12,color:"#555",marginTop:2}}>聯絡人：{f.clientName}</div>}
+          {f.clientAddress&&<div style={{fontSize:11,color:"#666"}}>{f.clientAddress}</div>}
+          {f.clientPhone&&<div style={{fontSize:11,color:"#666"}}>Tel: {f.clientPhone}</div>}
+          {f.clientEmail&&<div style={{fontSize:11,color:"#666"}}>{f.clientEmail}</div>}
         </div>
         <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px"}}>
           {[["報價單號",f.quoteNumber],["報價日期",f.quoteDate],["有效天數",f.validDays?`${f.validDays} 天`:""],["幣別",f.currency],["付款條件",f.paymentTerms]].filter(([,v])=>v).map(([k,v])=>(
-            <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+            <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
               <span style={{color:"#888"}}>{k}：</span><span style={{fontWeight:600}}>{v}</span>
             </div>
           ))}
@@ -228,19 +234,20 @@ export default function App() {
   const [clientAddress, setClientAddress] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [clientTaxId, setClientTaxId] = useState("");
   const [items, setItems] = useState([{id:1,description:"",qty:1,unit:"式",unitPrice:0,note:""}]);
   const [taxRate, setTaxRate] = useState("5");
   const [paymentTerms, setPaymentTerms] = useState("30天內付清");
   const [bankInfo, setBankInfo] = useState("");
   const [notes, setNotes] = useState("");
 
-  const form = { quoteNumber,quoteDate,validDays,currency,companyName,companyAddress,companyPhone,companyEmail,clientName,clientCompany,clientAddress,clientPhone,clientEmail,items,taxRate,paymentTerms,bankInfo,notes };
+  const form = { quoteNumber,quoteDate,validDays,currency,companyName,companyAddress,companyPhone,companyEmail,clientName,clientCompany,clientAddress,clientPhone,clientEmail,clientTaxId,items,taxRate,paymentTerms,bankInfo,notes };
 
   const resetForm = () => {
     setQuoteNumber(genQNum()); setQuoteDate(new Date().toISOString().split("T")[0]);
     setValidDays("30"); setCurrency("TWD");
     setCompanyName(""); setCompanyAddress(""); setCompanyPhone(""); setCompanyEmail("");
-    setClientName(""); setClientCompany(""); setClientAddress(""); setClientPhone(""); setClientEmail("");
+    setClientName(""); setClientCompany(""); setClientAddress(""); setClientPhone(""); setClientEmail(""); setClientTaxId("");
     setItems([{id:1,description:"",qty:1,unit:"式",unitPrice:0,note:""}]);
     setTaxRate("5"); setPaymentTerms("30天內付清"); setBankInfo(""); setNotes("");
   };
@@ -278,14 +285,48 @@ export default function App() {
     setSelClient(id);
     if(!id) return;
     const c = clients.find(c=>c.id===id);
-    if(c){ setClientName(c.name||""); setClientCompany(c.company||""); setClientAddress(c.address||""); setClientPhone(c.phone||""); setClientEmail(c.email||""); }
+    if(c){ setClientName(c.name||""); setClientCompany(c.company||""); setClientAddress(c.address||""); setClientPhone(c.phone||""); setClientEmail(c.email||""); setClientTaxId(c.taxId||c.taxNumber||""); }
+  };
+
+  const ClientSearch = ({ onSelected }) => {
+    const [query, setQuery] = useState("");
+    const [open, setOpen] = useState(false);
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const matches = clients.filter((client) => {
+      if (!normalizedQuery) return true;
+      return [client.company, client.name, client.phone, client.taxId, client.taxNumber]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery));
+    });
+    const choose = (id) => {
+      selectClient(id);
+      setQuery("");
+      setOpen(false);
+      onSelected?.();
+    };
+    return <div className="client-search">
+      <input
+        className="inp"
+        value={query}
+        onChange={(e)=>{ setQuery(e.target.value); setOpen(true); }}
+        onFocus={()=>setOpen(true)}
+        placeholder="搜尋公司、聯絡人、電話或統編"
+        aria-label="搜尋舊客戶"
+      />
+      {open&&<div className="client-search-results" role="listbox">
+        {matches.length>0 ? matches.map((c)=><button key={c.id} type="button" className="client-search-option" role="option" onMouseDown={(e)=>e.preventDefault()} onClick={()=>choose(c.id)}>
+          <div style={{fontWeight:700}}>{c.company||c.name||"未命名客戶"}</div>
+          <div className="client-search-meta">{[c.company&&c.name?c.name:"", c.phone, c.taxId||c.taxNumber?`統編 ${c.taxId||c.taxNumber}`:""].filter(Boolean).join(" · ")||"尚未填寫聯絡資訊"}</div>
+        </button>) : <div style={{padding:"12px",color:"var(--muted)",fontSize:12}}>找不到符合的客戶</div>}
+      </div>}
+    </div>;
   };
 
   const saveClient = async () => {
     if(!clientName&&!clientCompany){ showToast("⚠️ 請先填入客戶姓名或公司",true); return; }
     setSync("syncing");
     try {
-      const data = {name:clientName,company:clientCompany,address:clientAddress,phone:clientPhone,email:clientEmail,updatedAt:Date.now()};
+      const data = {name:clientName,company:clientCompany,address:clientAddress,phone:clientPhone,email:clientEmail,taxId:clientTaxId,updatedAt:Date.now()};
       const existing = clients.find(c=>c.company===clientCompany&&c.name===clientName);
       if(existing){ await updateDoc(doc(db,"clients",existing.id),data); showToast("✅ 客戶資料已更新"); }
       else { const ref = await addDoc(collection(db,"clients"),{...data,createdAt:Date.now()}); setSelClient(ref.id); showToast("✅ 已儲存新客戶（雲端同步）"); }
@@ -321,10 +362,7 @@ export default function App() {
       </div>
       <div className="card" style={{marginBottom:14}}>
         <div style={{fontSize:12,fontWeight:700,color:"#e8a020",marginBottom:10}}>📁 舊客戶快速填入</div>
-        <select className="inp" value={selClient} onChange={e=>selectClient(e.target.value)}>
-          <option value="">— 選擇舊客戶 —</option>
-          {clients.map(c=><option key={c.id} value={c.id}>{c.company||c.name}{c.company&&c.name?` (${c.name})`:""}</option>)}
-        </select>
+        <ClientSearch/>
         {!dbReady&&<div style={{fontSize:11,color:"var(--muted)",marginTop:8,textAlign:"center"}}>載入中...</div>}
         {dbReady&&clients.length===0&&<div style={{fontSize:11,color:"var(--muted)",marginTop:8,textAlign:"center"}}>尚無儲存的客戶</div>}
       </div>
@@ -362,6 +400,7 @@ export default function App() {
           <F label="電話"><ImeInput className="inp" placeholder="電話" value={clientPhone} onChange={setClientPhone}/></F>
           <F label="Email"><ImeInput className="inp" placeholder="Email" value={clientEmail} onChange={setClientEmail}/></F>
         </div>
+        <F label="統一編號"><ImeInput className="inp" placeholder="統一編號" value={clientTaxId} onChange={setClientTaxId}/></F>
         <button onClick={saveClient} className="btn btn-success" style={{width:"100%",padding:"11px",fontSize:13,marginTop:4}}>☁️ 儲存至雲端</button>
         {clients.length>0&&<>
           <div style={{fontSize:11,color:"var(--muted)",marginTop:18,marginBottom:10,fontWeight:700}}>已儲存客戶（{clients.length} 位）</div>
@@ -465,10 +504,7 @@ export default function App() {
                   <div className="stitle">客戶資料庫（雲端同步）</div>
                   <div className="card" style={{marginBottom:14}}>
                     <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",marginBottom:10}}>快速填入</div>
-                    <select className="inp" value={selClient} onChange={e=>{ selectClient(e.target.value); if(e.target.value){ showToast("✅ 已填入客戶資料"); setMobileTab("form"); } }}>
-                      <option value="">— 選擇舊客戶 —</option>
-                      {clients.map(c=><option key={c.id} value={c.id}>{c.company||c.name}{c.company&&c.name?` (${c.name})`:""}</option>)}
-                    </select>
+                    <ClientSearch onSelected={()=>{ showToast("✅ 已填入客戶資料"); setMobileTab("form"); }}/>
                   </div>
                   {clients.length===0&&dbReady&&<div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"30px 0"}}><div style={{fontSize:32,marginBottom:10}}>📂</div><div>尚無儲存的客戶</div></div>}
                   {clients.map(c=>(
