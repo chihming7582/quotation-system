@@ -124,7 +124,7 @@ function Preview({ f }) {
   const tax = sub*(+f.taxRate||0)/100;
   const tot = sub+tax;
   return (
-    <div style={{background:"white",color:"#1a1a1a",fontFamily:"'Noto Sans TC','Microsoft JhengHei',sans-serif",fontSize:12,lineHeight:1.6}}>
+    <div style={{background:"white",color:"#1a1a1a",fontFamily:"'Noto Sans TC','Microsoft JhengHei',sans-serif",fontSize:14,lineHeight:1.6}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,paddingBottom:16,borderBottom:"3px solid #1d3461"}}>
         <div>
           <div style={{fontSize:22,fontWeight:800,color:"#1d3461"}}>{f.companyName||"公司名稱"}</div>
