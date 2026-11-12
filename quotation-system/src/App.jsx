@@ -21,7 +21,7 @@ const BLANK = {
   quoteNumber:"", quoteDate: new Date().toISOString().split("T")[0],
   validDays:"30", currency:"TWD",
   companyName:"", companyAddress:"", companyPhone:"", companyEmail:"",
-  clientName:"", clientCompany:"", clientAddress:"", clientPhone:"", clientEmail:"",
+  clientName:"", clientCompany:"", clientAddress:"", clientPhone:"", clientEmail:"", clientTaxId:"",
   items:[{ id:1, description:"", qty:1, unit:"式", unitPrice:0, note:"" }],
   taxRate:"5", paymentTerms:"30天內付清", bankInfo:"", notes:""
 };
@@ -52,6 +52,12 @@ const CSS = `
   .inp { width:100%; background:#0d1526; border:1.5px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); font-family:inherit; transition:border-color .2s; outline:none; }
   .inp:focus { border-color:var(--accent); }
   .inp::placeholder { color:#3d5066; }
+  .client-search { position:relative; }
+  .client-search-results { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:60; max-height:250px; overflow-y:auto; background:#111827; border:1px solid var(--border); border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  .client-search-option { width:100%; display:block; padding:10px 12px; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+  .client-search-option:last-child { border-bottom:0; }
+  .client-search-option:hover { background:#1a2a45; }
+  .client-search-meta { margin-top:2px; color:var(--sub); font-size:11px; }
   textarea.inp { resize:vertical; }
   select.inp { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%2364748b'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
   .btn { border:none; border-radius:8px; cursor:pointer; font-family:inherit; font-weight:600; transition:all .2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
@@ -96,8 +102,8 @@ function QuotePreview({ form }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,paddingBottom:16,borderBottom:"3px solid #1d3461"}}>
         <div>
           <div style={{fontSize:22,fontWeight:800,color:"#1d3461",letterSpacing:-0.5}}>{form.companyName||"公司名稱"}</div>
-          {form.companyAddress && <div style={{fontSize:10,color:"#666",marginTop:3}}>{form.companyAddress}</div>}
-          {(form.companyPhone||form.companyEmail) && <div style={{fontSize:10,color:"#666"}}>{[form.companyPhone,form.companyEmail].filter(Boolean).join(" · ")}</div>}
+          {form.companyAddress && <div style={{fontSize:11,color:"#666",marginTop:3}}>{form.companyAddress}</div>}
+          {(form.companyPhone||form.companyEmail) && <div style={{fontSize:11,color:"#666"}}>{[form.companyPhone,form.companyEmail].filter(Boolean).join(" · ")}</div>}
         </div>
         <div style={{textAlign:"right"}}>
           <div style={{fontSize:20,fontWeight:800,color:"#1d3461",letterSpacing:3}}>報 價 單</div>
@@ -108,16 +114,16 @@ function QuotePreview({ form }) {
       {/* Info Grid */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
         <div style={{background:"#f0f4f8",borderRadius:8,padding:"10px 12px",borderLeft:"4px solid #1d3461"}}>
-          <div style={{fontSize:9,color:"#777",fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>報價對象</div>
-          <div style={{fontWeight:700,fontSize:13}}>{form.clientCompany||form.clientName||"客戶名稱"}</div>
-          {form.clientCompany&&form.clientName && <div style={{fontSize:11,color:"#555",marginTop:2}}>聯絡人：{form.clientName}</div>}
-          {form.clientAddress && <div style={{fontSize:10,color:"#666"}}>{form.clientAddress}</div>}
-          {form.clientPhone && <div style={{fontSize:10,color:"#666"}}>Tel: {form.clientPhone}</div>}
-          {form.clientEmail && <div style={{fontSize:10,color:"#666"}}>{form.clientEmail}</div>}
+          <div style={{fontSize:10,color:"#777",fontWeight:700,marginBottom:5,textTransform:"uppercase",letterSpacing:1}}>報價對象</div>
+          <div style={{fontWeight:700,fontSize:15}}>{form.clientCompany||form.clientName||"客戶名稱"}</div>
+          {form.clientCompany&&form.clientName && <div style={{fontSize:12,color:"#555",marginTop:2}}>聯絡人：{form.clientName}</div>}
+          {form.clientAddress && <div style={{fontSize:11,color:"#666"}}>{form.clientAddress}</div>}
+          {form.clientPhone && <div style={{fontSize:11,color:"#666"}}>Tel: {form.clientPhone}</div>}
+          {form.clientEmail && <div style={{fontSize:11,color:"#666"}}>{form.clientEmail}</div>}
         </div>
         <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px"}}>
           {[["報價單號",form.quoteNumber],["報價日期",form.quoteDate],["有效天數",form.validDays?`${form.validDays} 天`:""],["幣別",form.currency],["付款條件",form.paymentTerms]].filter(([,v])=>v).map(([k,v])=>(
-            <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+            <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
               <span style={{color:"#888"}}>{k}：</span>
               <span style={{fontWeight:600}}>{v}</span>
             </div>
@@ -224,7 +230,24 @@ export default function App() {
     setSelClient(id);
     if(!id) return;
     const c = clients.find(c=>c.id===id);
-    if(c) setForm(f=>({...f,clientName:c.name,clientCompany:c.company,clientAddress:c.address,clientPhone:c.phone,clientEmail:c.email}));
+    if(c) setForm(f=>({...f,clientName:c.name,clientCompany:c.company,clientAddress:c.address,clientPhone:c.phone,clientEmail:c.email,clientTaxId:c.taxId||c.taxNumber||""}));
+  };
+
+  const ClientSearch = ({ onSelected }) => {
+    const [query, setQuery] = useState("");
+    const [open, setOpen] = useState(false);
+    const key = query.trim().toLocaleLowerCase();
+    const matches = clients.filter(c => !key || [c.company,c.name,c.phone,c.taxId,c.taxNumber].filter(Boolean).some(v=>String(v).toLocaleLowerCase().includes(key)));
+    const choose = (id) => { selectClient(id); setQuery(""); setOpen(false); onSelected?.(); };
+    return <div className="client-search">
+      <input className="inp" value={query} onChange={e=>{setQuery(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)} placeholder="搜尋公司、聯絡人、電話或統編" aria-label="搜尋舊客戶"/>
+      {open&&<div className="client-search-results" role="listbox">
+        {matches.length ? matches.map(c=><button key={c.id} type="button" className="client-search-option" onMouseDown={e=>e.preventDefault()} onClick={()=>choose(c.id)}>
+          <div style={{fontWeight:700}}>{c.company||c.name||"未命名客戶"}</div>
+          <div className="client-search-meta">{[c.company&&c.name?c.name:"",c.phone,c.taxId||c.taxNumber?`統編 ${c.taxId||c.taxNumber}`:""].filter(Boolean).join(" · ")||"尚未填寫聯絡資訊"}</div>
+        </button>) : <div style={{padding:"12px",color:"var(--muted)",fontSize:12}}>找不到符合的客戶</div>}
+      </div>}
+    </div>;
   };
 
   const saveClient = () => {
@@ -232,10 +255,10 @@ export default function App() {
     const existing = clients.find(c=>c.company===form.clientCompany&&c.name===form.clientName);
     let updated;
     if(existing) {
-      updated = clients.map(c=>c.id===existing.id?{...c,name:form.clientName,company:form.clientCompany,address:form.clientAddress,phone:form.clientPhone,email:form.clientEmail}:c);
+      updated = clients.map(c=>c.id===existing.id?{...c,name:form.clientName,company:form.clientCompany,address:form.clientAddress,phone:form.clientPhone,email:form.clientEmail,taxId:form.clientTaxId}:c);
       showToast("✅ 客戶資料已更新");
     } else {
-      const nc = {id:Date.now().toString(),name:form.clientName,company:form.clientCompany,address:form.clientAddress,phone:form.clientPhone,email:form.clientEmail};
+      const nc = {id:Date.now().toString(),name:form.clientName,company:form.clientCompany,address:form.clientAddress,phone:form.clientPhone,email:form.clientEmail,taxId:form.clientTaxId};
       updated = [nc,...clients];
       setSelClient(nc.id);
       showToast("✅ 已儲存新客戶");
@@ -285,12 +308,7 @@ export default function App() {
       {/* Client quick-select */}
       <div className="card" style={{marginBottom:14}}>
         <div style={{fontSize:12,fontWeight:700,color:"#e8a020",marginBottom:10}}>📁 舊客戶快速填入</div>
-        <select className="inp" value={selClient} onChange={e=>selectClient(e.target.value)}>
-          <option value="">— 選擇舊客戶 —</option>
-          {clients.map(c=>(
-            <option key={c.id} value={c.id}>{c.company||c.name}{c.company&&c.name?` (${c.name})`:""}</option>
-          ))}
-        </select>
+        <ClientSearch/>
         {clients.length===0&&<div style={{fontSize:11,color:"var(--muted)",marginTop:8,textAlign:"center"}}>尚無儲存的客戶，填入後點「儲存客戶」</div>}
       </div>
 
@@ -336,6 +354,7 @@ export default function App() {
           <Inp label="電話"><input className="inp" placeholder="電話" value={form.clientPhone} onChange={e=>set("clientPhone",e.target.value)}/></Inp>
           <Inp label="Email"><input className="inp" placeholder="Email" value={form.clientEmail} onChange={e=>set("clientEmail",e.target.value)}/></Inp>
         </div>
+        <Inp label="統一編號"><input className="inp" placeholder="統一編號" value={form.clientTaxId} onChange={e=>set("clientTaxId",e.target.value)}/></Inp>
         <button onClick={saveClient} className="btn btn-success" style={{width:"100%",padding:"11px",fontSize:13,marginTop:4}}>
           💾 儲存此客戶資料
         </button>
@@ -479,10 +498,7 @@ export default function App() {
                   <div className="section-title">客戶資料庫</div>
                   <div className="card" style={{marginBottom:14}}>
                     <div style={{fontSize:12,fontWeight:700,color:"var(--accent)",marginBottom:10}}>快速填入</div>
-                    <select className="inp" value={selClient} onChange={e=>{ selectClient(e.target.value); if(e.target.value){ showToast("✅ 已填入客戶資料"); setMobileTab("form"); } }}>
-                      <option value="">— 選擇舊客戶 —</option>
-                      {clients.map(c=><option key={c.id} value={c.id}>{c.company||c.name}{c.company&&c.name?` (${c.name})`:""}</option>)}
-                    </select>
+                    <ClientSearch onSelected={()=>{ showToast("✅ 已填入客戶資料"); setMobileTab("form"); }}/>
                   </div>
                   {clients.length===0&&(
                     <div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"30px 0"}}>
