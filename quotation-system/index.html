@@ -14,6 +14,10 @@ input,textarea,select{font-family:inherit;}
 .inp{width:100%;background:#0d1526;border:1.5px solid #1e2d45;border-radius:8px;padding:9px 12px;font-size:13px;color:#f0f4ff;transition:border-color .2s;outline:none;}
 .inp:focus{border-color:#e8a020;}
 .inp::placeholder{color:#3d5066;}
+.client-search{position:relative;}
+.client-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;max-height:250px;overflow-y:auto;background:#111827;border:1px solid #1e2d45;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.35);}
+.client-option{width:100%;display:block;padding:10px 12px;border:0;border-bottom:1px solid #1e2d45;background:transparent;color:#f0f4ff;font:inherit;text-align:left;cursor:pointer;}
+.client-option:last-child{border-bottom:0}.client-option:hover{background:#1a2a45}.client-meta{margin-top:2px;color:#94a3b8;font-size:11px;}
 textarea.inp{resize:vertical;}
 select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%2364748b'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
 button{font-family:inherit;cursor:pointer;}
@@ -56,17 +60,17 @@ button{font-family:inherit;cursor:pointer;}
 .qp{background:white;color:#1a1a1a;font-size:12px;line-height:1.6;}
 .qp-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:3px solid #1d3461;}
 .qp-co{font-size:22px;font-weight:800;color:#1d3461;}
-.qp-sub{font-size:10px;color:#666;margin-top:2px;}
+.qp-sub{font-size:11px;color:#666;margin-top:2px;}
 .qp-ttl{font-size:20px;font-weight:800;color:#1d3461;letter-spacing:3px;text-align:right;}
 .qp-ttl2{font-size:9px;color:#999;letter-spacing:2px;text-align:right;}
 .qp-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
 .qp-cl{background:#f0f4f8;border-radius:8px;padding:10px 12px;border-left:4px solid #1d3461;}
-.qp-cl-h{font-size:9px;color:#777;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
-.qp-cl-n{font-weight:700;font-size:13px;}
-.qp-cl-s{font-size:11px;color:#555;margin-top:2px;}
-.qp-cl-i{font-size:10px;color:#666;}
+.qp-cl-h{font-size:10px;color:#777;font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px;}
+.qp-cl-n{font-weight:700;font-size:15px;}
+.qp-cl-s{font-size:12px;color:#555;margin-top:2px;}
+.qp-cl-i{font-size:11px;color:#666;}
 .qp-inf{background:#f8fafc;border-radius:8px;padding:10px 12px;}
-.qp-ir{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;}
+.qp-ir{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;}
 .qp-ik{color:#888;}.qp-iv{font-weight:600;}
 .qp-tbl{width:100%;border-collapse:collapse;margin-bottom:12px;}
 .qp-tbl th{padding:8px;font-size:10px;font-weight:700;background:#1d3461;color:white;}
@@ -144,7 +148,7 @@ button{font-family:inherit;cursor:pointer;}
     <div id="sync-bar"><span class="sdot spin" id="sdot"></span><span id="stxt">連接中...</span></div>
     <div class="card" style="margin-bottom:14px;">
       <div style="font-size:12px;font-weight:700;color:#e8a020;margin-bottom:10px;">📁 舊客戶快速填入</div>
-      <select class="inp" id="sel-cli" onchange="pickClient(this.value)"><option value="">— 選擇舊客戶 —</option></select>
+      <div class="client-search"><input class="inp" id="cli-search" placeholder="搜尋公司、聯絡人、電話或統編" oninput="searchClients(this.value,'cli-results')"><div class="client-results" id="cli-results" style="display:none"></div></div>
     </div>
     <div id="stabs">
       <button class="stab on" onclick="tab(this,'basic')"><span class="si">📋</span>基本</button>
@@ -216,7 +220,7 @@ button{font-family:inherit;cursor:pointer;}
     <div style="display:flex;align-items:center;margin-bottom:12px;font-size:11px;color:#64748b;"><span class="sdot spin" id="sdot-m"></span><span id="stxt-m">連接中...</span></div>
     <div class="card" style="margin-bottom:14px;">
       <div style="font-size:12px;font-weight:700;color:#e8a020;margin-bottom:10px;">📁 舊客戶快速填入</div>
-      <select class="inp" id="sel-cli-m" onchange="pickClient(this.value)"><option value="">— 選擇舊客戶 —</option></select>
+      <div class="client-search"><input class="inp" id="cli-search-m" placeholder="搜尋公司、聯絡人、電話或統編" oninput="searchClients(this.value,'cli-results-m')"><div class="client-results" id="cli-results-m" style="display:none"></div></div>
     </div>
     <div id="stabs-m" style="display:flex;gap:4px;margin-bottom:14px;background:#111827;border-radius:10px;padding:4px;">
       <button class="stab on" onclick="tabM(this,'basic')"><span class="si">📋</span>基本</button>
@@ -461,6 +465,13 @@ function renderDropdowns(){
   ["sel-cli","sel-cli-m","sel-cli-m2"].forEach(id=>{const e=g(id);if(e)e.innerHTML=opts;});
   g("mn-cli-lbl").textContent=`客戶${clients.length>0?`(${clients.length})`:""}`;
 }
+window.searchClients=(query,resultId)=>{
+  const box=g(resultId);if(!box)return;
+  const key=(query||"").trim().toLocaleLowerCase();
+  const matches=clients.filter(c=>!key||[c.company,c.name,c.phone,c.taxId,c.taxNumber].filter(Boolean).some(x=>String(x).toLocaleLowerCase().includes(key)));
+  box.style.display="block";
+  box.innerHTML=matches.length?matches.map(c=>`<button type="button" class="client-option" onclick="pickClient('${c.id}')"><div style="font-weight:700">${c.company||c.name||"未命名客戶"}</div><div class="client-meta">${[c.company&&c.name?c.name:"",c.phone,c.taxId||c.taxNumber?`統編 ${c.taxId||c.taxNumber}`:""] .filter(Boolean).join(" · ")||"尚未填寫聯絡資訊"}</div></button>`).join(""):`<div style="padding:12px;color:#64748b;font-size:12px">找不到符合的客戶</div>`;
+};
 function renderCliLists(){
   const empty=`<div style="text-align:center;color:#64748b;font-size:13px;padding:20px 0">尚無儲存的客戶</div>`;
   const html=clients.length===0?empty:clients.map(c=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:10px 12px;"><div><div style="font-size:13px;font-weight:600">${c.company||c.name}</div>${c.company&&c.name?`<div style="font-size:11px;color:#64748b">${c.name}</div>`:""}${c.taxId?`<div style="font-size:10px;color:#94a3b8">統編：${c.taxId}</div>`:""}${c.phone?`<div style="font-size:10px;color:#94a3b8">${c.phone}</div>`:""}</div><div style="display:flex;gap:6px;"><button class="btn-g" style="padding:5px 10px;font-size:11px;" onclick="pickClient('${c.id}')">選用</button><button class="btn-d" onclick="delCli('${c.id}')">×</button></div></div>`).join("");
@@ -477,7 +488,7 @@ function fillCli(c){
 }
 window.pickClient=(id)=>{
   ["sel-cli","sel-cli-m","sel-cli-m2"].forEach(sid=>{const e=g(sid);if(e)e.value=id;});
-  if(!id)return;const c=clients.find(x=>x.id===id);if(c)fillCli(c);
+  if(!id)return;const c=clients.find(x=>x.id===id);if(c){fillCli(c);["cli-search","cli-search-m"].forEach(id=>{const e=g(id);if(e)e.value="";});["cli-results","cli-results-m"].forEach(id=>{const e=g(id);if(e)e.style.display="none";});}
 };
 window.pickClientFull=(id)=>{
   pickClient(id);
